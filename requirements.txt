@@ -1,0 +1,20 @@
+# ============================================================
+#  The Bridge Protocol — Python Dependencies (Pure Python)
+#  Install with: pip install -r requirements.txt
+#  No Rust, no compiler, no MSYS2 tricks needed.
+# ============================================================
+
+# Web framework (last version supporting pydantic v1 — pure Python)
+fastapi==0.95.2
+
+# ASGI server (pure Python)
+uvicorn==0.29.0
+
+# HTTP client — calls Supabase REST API directly (replaces supabase package)
+httpx>=0.24.0
+
+# Load secrets from .env file (pure Python)
+python-dotenv>=1.0.0
+
+# Data validation — v1 is 100% pure Python (no Rust)
+pydantic>=1.10.0,<2.0.0
