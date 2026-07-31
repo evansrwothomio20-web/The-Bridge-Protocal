@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import tasks
+from app.routers import tasks, bids, users
 
 # ---------------------------------------------------------------------------
 # App initialisation
@@ -35,6 +35,8 @@ app.add_middleware(
 # Routers
 # ---------------------------------------------------------------------------
 app.include_router(tasks.router)
+app.include_router(bids.router)
+app.include_router(users.router)
 
 
 # ---------------------------------------------------------------------------
