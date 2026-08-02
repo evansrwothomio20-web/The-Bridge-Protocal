@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Bridge Protocol | Campus Micro-Task Marketplace</title>
+    <meta name="description" content="The Bridge Protocol connects university students with campus clients for tech repair, tutoring, graphic design, and local micro-tasks. Post a task or bid your skills today.">
+    <meta name="theme-color" content="#0a0f1e">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ═══════════════════════════════════════════
+         TOAST NOTIFICATION CONTAINER
+    ═══════════════════════════════════════════ -->
+    <div id="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+    <!-- ═══════════════════════════════════════════
+         NAVIGATION HEADER
+    ═══════════════════════════════════════════ -->
+    <header class="navbar" role="banner">
+        <div class="nav-left">
+            <div class="logo-container">
+                <div class="logo-icon" aria-hidden="true">
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M14 2L26 8V20L14 26L2 20V8L14 2Z" stroke="url(#logo-grad)" stroke-width="2" fill="none"/>
+                        <path d="M14 8L20 11V17L14 20L8 17V11L14 8Z" fill="url(#logo-grad)" opacity="0.6"/>
+                        <defs>
+                            <linearGradient id="logo-grad" x1="2" y1="2" x2="26" y2="26" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#6366f1"/>
+                                <stop offset="1" stop-color="#06b6d4"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <h1>THE BRIDGE</h1>
+                    <span class="logo-badge">Protocol</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="nav-right" role="navigation" aria-label="Primary navigation">
+            <button id="open-post-task-btn" class="btn btn-primary" aria-haspopup="dialog">
+                <span class="btn-icon" aria-hidden="true">+</span>
+                Post a Task
+            </button>
+        </nav>
+    </header>
+
+    <!-- ═══════════════════════════════════════════
+         MAIN CONTENT
+    ═══════════════════════════════════════════ -->
+    <main class="main-content" role="main">
+
+        <!-- Hero Section -->
+        <section class="hero-section" aria-labelledby="hero-title">
+            <div class="hero-inner">
+                <div class="hero-badge">
+                    <span class="pulse-dot" aria-hidden="true"></span>
+                    Live Marketplace
+                </div>
+                <h2 id="hero-title" class="hero-title">
+                    Decentralized Campus<br>
+                    <span class="gradient-text">Service Marketplace</span>
+                </h2>
+                <p class="hero-sub">Connect with fellow students for tech repair, tutoring, graphic design, and campus micro-tasks. Bid your skills. Build your reputation.</p>
+
+                <div class="hero-stats" role="region" aria-label="Platform statistics">
+                    <div class="stat-chip">
+                        <span id="stat-tasks-count" class="stat-number">—</span>
+                        <span class="stat-label">Open Tasks</span>
+                    </div>
+                    <div class="stat-divider" aria-hidden="true"></div>
+                    <div class="stat-chip">
+                        <span class="stat-number">5</span>
+                        <span class="stat-label">Categories</span>
+                    </div>
+                    <div class="stat-divider" aria-hidden="true"></div>
+                    <div class="stat-chip">
+                        <span class="stat-number">UGX</span>
+                        <span class="stat-label">Currency</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════
+             TASKS FEED
+        ═══════════════════════════════════════ -->
+        <section class="tasks-section" aria-labelledby="tasks-heading">
+            <div class="section-toolbar">
+                <h3 id="tasks-heading" class="section-title">Available Micro-Tasks</h3>
+                <button id="refresh-btn" class="btn btn-ghost" aria-label="Refresh task list">
+                    <span class="refresh-icon" aria-hidden="true">↻</span>
+                    Refresh
+                </button>
+            </div>
+
+            <!-- Category Filter Chips -->
+            <div id="filter-bar" class="filter-bar" role="group" aria-label="Filter by category">
+                <button class="filter-chip active" data-category="All">All</button>
+                <button class="filter-chip" data-category="Tech Repair">🔧 Tech Repair</button>
+                <button class="filter-chip" data-category="Tutoring">📚 Tutoring</button>
+                <button class="filter-chip" data-category="Graphic Design">🎨 Graphic Design</button>
+                <button class="filter-chip" data-category="Campus Logistics">🏫 Campus Logistics</button>
+                <button class="filter-chip" data-category="Other">⚙️ Other</button>
+            </div>
+
+            <!-- Task Grid -->
+            <div id="tasks-container" class="task-grid" role="list" aria-label="Task listings">
+                <!-- Populated by ui.js -->
+            </div>
+        </section>
+    </main>
+
+    <!-- ═══════════════════════════════════════════
+         POST TASK MODAL
+    ═══════════════════════════════════════════ -->
+    <div id="post-task-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="post-task-modal-title">
+        <div class="modal-content" role="document">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <div class="modal-icon" aria-hidden="true">📋</div>
+                    <h3 id="post-task-modal-title">Post a New Task</h3>
+                </div>
+                <button id="close-post-task-btn" class="icon-btn" aria-label="Close modal">&times;</button>
+            </div>
+
+            <form id="create-task-form" novalidate>
+                <div class="form-group">
+                    <label for="task-title">Task Title <span class="required" aria-label="required">*</span></label>
+                    <input type="text" id="task-title" placeholder="e.g., C Programming Tutoring" required minlength="3" maxlength="200" autocomplete="off">
+                    <span class="field-hint">Minimum 3 characters</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="task-category">Category <span class="required" aria-label="required">*</span></label>
+                    <select id="task-category" required>
+                        <option value="">Select a Category</option>
+                        <option value="Tech Repair">🔧 Tech Repair</option>
+                        <option value="Tutoring">📚 Tutoring</option>
+                        <option value="Graphic Design">🎨 Graphic Design</option>
+                        <option value="Campus Logistics">🏫 Campus Logistics</option>
+                        <option value="Other">⚙️ Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="task-budget">Budget (UGX) <span class="required" aria-label="required">*</span></label>
+                    <div class="input-prefix-wrapper">
+                        <span class="input-prefix" aria-hidden="true">UGX</span>
+                        <input type="number" id="task-budget" placeholder="25000" min="1000" required>
+                    </div>
+                    <span class="field-hint">Minimum UGX 1,000</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="task-desc">Description <span class="required" aria-label="required">*</span></label>
+                    <textarea id="task-desc" rows="4" placeholder="Describe what you need help with in detail. Be specific so students can give accurate bids." required minlength="10"></textarea>
+                    <span class="char-counter" id="desc-counter">0 / 500</span>
+                </div>
+
+                <!-- Hidden client ID — replace with auth user ID in production -->
+                <input type="hidden" id="task-client-id" value="11111111-1111-1111-1111-111111111111">
+
+                <div class="form-actions">
+                    <button type="button" id="cancel-post-task-btn" class="btn btn-ghost">Cancel</button>
+                    <button type="submit" id="submit-task-btn" class="btn btn-primary">
+                        <span class="btn-label">Post Task</span>
+                        <span class="btn-spinner hidden" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+         BID / APPLY MODAL
+    ═══════════════════════════════════════════ -->
+    <div id="bid-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="bid-modal-title">
+        <div class="modal-content" role="document">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <div class="modal-icon" aria-hidden="true">🤝</div>
+                    <h3 id="bid-modal-title">Apply / Place a Bid</h3>
+                </div>
+                <button id="close-bid-btn" class="icon-btn" aria-label="Close modal">&times;</button>
+            </div>
+
+            <!-- Task preview strip -->
+            <div id="bid-task-preview" class="task-preview-strip">
+                <span id="bid-preview-category" class="category-tag small"></span>
+                <p id="bid-preview-title" class="preview-title"></p>
+                <span id="bid-preview-budget" class="preview-budget"></span>
+            </div>
+
+            <form id="place-bid-form" novalidate>
+                <input type="hidden" id="bid-task-id">
+                <!-- Hidden student ID — replace with auth user ID in production -->
+                <input type="hidden" id="bid-student-id" value="22222222-2222-2222-2222-222222222222">
+
+                <div class="form-group">
+                    <label for="bid-amount">Your Bid Amount (UGX) <span class="required" aria-label="required">*</span></label>
+                    <div class="input-prefix-wrapper">
+                        <span class="input-prefix" aria-hidden="true">UGX</span>
+                        <input type="number" id="bid-amount" placeholder="20000" min="1000" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="bid-proposal">Your Proposal <span class="required" aria-label="required">*</span></label>
+                    <textarea id="bid-proposal" rows="5" placeholder="Explain why you're the right person for this task. Include your relevant experience, how you'll approach it, and your estimated timeline." required minlength="10"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="cancel-bid-btn" class="btn btn-ghost">Cancel</button>
+                    <button type="submit" id="submit-bid-btn" class="btn btn-accent">
+                        <span class="btn-label">Submit Bid</span>
+                        <span class="btn-spinner hidden" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+         SCRIPTS (module type for clean imports)
+    ═══════════════════════════════════════════ -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
