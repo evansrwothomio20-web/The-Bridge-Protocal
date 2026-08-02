@@ -20,7 +20,15 @@
  *   POST   /api/users                        → register a user
  */
 
-const BASE_URL = "http://127.0.0.1:8000/api";
+// Auto-detect environment:
+// • Local dev  → backend runs on localhost:8000
+// • Production → set VITE_API_URL or API_BASE env var, or deploy backend separately
+const IS_LOCAL = window.location.hostname === "localhost" ||
+                 window.location.hostname === "127.0.0.1";
+
+const BASE_URL = IS_LOCAL
+    ? "http://127.0.0.1:8000/api"
+    : (window.BRIDGE_API_URL || "https://the-bridge-api.vercel.app/api");
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 

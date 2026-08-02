@@ -158,14 +158,18 @@ export function showError(message) {
     const container = document.getElementById("tasks-container");
     if (!container) return;
 
+    const isLocal = window.location.hostname === "localhost" ||
+                    window.location.hostname === "127.0.0.1";
+
+    const hint = isLocal
+        ? `Ensure the backend is running:<br><code>uvicorn main:app --reload</code>`
+        : `The backend API is not yet deployed to production. Tasks will load once the backend is live.`;
+
     container.innerHTML = `
         <div class="error-state" role="alert">
             <h4>⚠️ Could Not Load Tasks</h4>
             <p>${esc(message)}</p>
-            <p style="margin-top:8px">
-                Ensure the backend is running:<br>
-                <code>uvicorn main:app --reload</code>
-            </p>
+            <p style="margin-top:8px">${hint}</p>
         </div>
     `;
 }
