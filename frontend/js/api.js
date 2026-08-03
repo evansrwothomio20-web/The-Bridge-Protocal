@@ -1,114 +1,108 @@
 /**
  * api.js — The Bridge Protocol
  *
- * Centralized API layer. All HTTP calls to the FastAPI backend live here.
- * Every function returns a typed result object so the UI layer never has to
- * deal with raw Response objects or network errors directly.
+ * Calls the Supabase REST (PostgREST) API directly from the browser.
+ * No FastAPI / Vercel backend is required — every table is exposed as a
+ * standard REST endpoint by Supabase out of the box.
  *
- * Backend base: http://127.0.0.1:8000/api
- * Routes used:
- *   GET    /api/tasks                        → list open tasks
- *   GET    /api/tasks/:id                    → single task
- *   POST   /api/tasks                        → create task
- *   PATCH  /api/tasks/:id/status             → update task status
- *   DELETE /api/tasks/:id                    → delete task
- *   GET    /api/bids?task_id=:id             → bids for a task
- *   POST   /api/bids                         → place a bid
- *   PATCH  /api/bids/:id/accept              → accept a bid
- *   PATCH  /api/bids/:id/reject              → reject a bid
- *   GET    /api/users                        → list users
- *   POST   /api/users                        → register a user
+ * Endpoints used:
+ *   GET    /rest/v1/tasks?status=eq.open&select=*       → open tasks
+ *   GET    /rest/v1/tasks?select=*                      → all tasks
+ *   POST   /rest/v1/tasks                               → create task
+ *   PATCH  /rest/v1/tasks?id=eq.<id>                   → update task status
+ *   DELETE /rest/v1/tasks?id=eq.<id>                   → delete task
+ *   GET    /rest/v1/bids?task_id=eq.<id>&select=*       → bids for a task
+ *   GET    /rest/v1/bids?select=*                       → all bids
+ *   POST   /rest/v1/bids                                → place a bid
+ *   PATCH  /rest/v1/bids?id=eq.<id>                    → update bid status
+ *   DELETE /rest/v1/bids?id=eq.<id>                    → delete bid
+ *   GET    /rest/v1/users?select=*                      → all users
+ *   GET    /rest/v1/users?id=eq.<id>&select=*           → single user
+ *   POST   /rest/v1/users                               → register user
  */
 
-// Auto-detect environment:
-// • Local dev  → FastAPI backend runs on localhost:8000
-// • Production → Vercel serves the FastAPI backend at /api on the same domain
-const IS_LOCAL = window.location.hostname === "localhost" ||
-                 window.location.hostname === "127.0.0.1";
+// ─── Supabase connection ──────────────────────────────────────────────────────
 
-const BASE_URL = IS_LOCAL ? "http://127.0.0.1:8000/api" : "/api";
+const SUPABASE_URL  = "https://ldrjyiwyevnzoyaymtwb.supabase.co";
+const SUPABASE_ANON = "sb_publishable_wHsooWjaNo8zMUgotgOVZw_zp9xY695";
 
-// ─── Internal helpers ─────────────────────────────────────────────────────────
+/** Build headers required by every Supabase REST request. */
+function supabaseHeaders(extra = {}) {
+    return {
+        "apikey":        SUPABASE_ANON,
+        "Authorization": `Bearer ${SUPABASE_ANON}`,
+        "Content-Type":  "application/json",
+        "Prefer":        "return=representation",   // always return the modified row
+        ...extra,
+    };
+}
+
+// ─── Generic fetch wrapper ────────────────────────────────────────────────────
 
 /**
- * Generic fetch wrapper.
- * @param {string} path  - Relative path, e.g. "/tasks"
- * @param {RequestInit} [options] - Fetch options (method, body, headers …)
- * @returns {Promise<{ok: boolean, data: any, status: number, message: string}>}
+ * Thin wrapper around fetch that normalises every response into:
+ *   { ok: boolean, data: any, status: number, message: string }
+ *
+ * @param {string} url      Full Supabase REST URL
+ * @param {RequestInit} [opts]
  */
-async function request(path, options = {}) {
-    const url = `${BASE_URL}${path}`;
-    const defaultHeaders = { "Content-Type": "application/json" };
-
+async function request(url, opts = {}) {
     try {
-        const response = await fetch(url, {
-            ...options,
-            headers: { ...defaultHeaders, ...(options.headers || {}) },
+        const res = await fetch(url, {
+            ...opts,
+            headers: { ...supabaseHeaders(), ...(opts.headers || {}) },
         });
 
-        // 204 No Content — successful but no body
-        if (response.status === 204) {
+        // 204 No Content — success, no body
+        if (res.status === 204) {
             return { ok: true, data: null, status: 204, message: "Success" };
         }
 
         let data;
-        try {
-            data = await response.json();
-        } catch {
-            data = null;
+        try   { data = await res.json(); }
+        catch { data = null; }
+
+        if (!res.ok) {
+            // PostgREST errors come as { message, hint, details, code }
+            const message = (data && (data.message || data.hint)) || `Request failed (${res.status})`;
+            return { ok: false, data: null, status: res.status, message };
         }
 
-        if (!response.ok) {
-            // FastAPI validation errors come as { detail: string | array }
-            const message = extractErrorMessage(data) || `Request failed (${response.status})`;
-            return { ok: false, data: null, status: response.status, message };
-        }
+        return { ok: true, data, status: res.status, message: "OK" };
 
-        return { ok: true, data, status: response.status, message: "OK" };
     } catch (networkError) {
-        // Network-level failure (server down, CORS, etc.)
         console.error("[API] Network error:", networkError);
         return {
-            ok: false,
-            data: null,
-            status: 0,
-            message: "Cannot reach the server. Make sure the backend is running on port 8000.",
+            ok: false, data: null, status: 0,
+            message: "Cannot reach Supabase. Check your internet connection and API key.",
         };
     }
 }
 
-/**
- * Pull a readable message from a FastAPI error response body.
- * @param {any} body
- * @returns {string}
- */
-function extractErrorMessage(body) {
-    if (!body) return "";
-    if (typeof body.detail === "string") return body.detail;
-    if (Array.isArray(body.detail)) {
-        return body.detail.map((e) => e.msg || JSON.stringify(e)).join("; ");
-    }
-    if (typeof body.message === "string") return body.message;
-    return JSON.stringify(body);
-}
+/** Shorthand for the Supabase REST table base URL */
+const REST = `${SUPABASE_URL}/rest/v1`;
 
 
 // ─── Tasks ────────────────────────────────────────────────────────────────────
 
 /**
- * Fetch all open tasks.
+ * Fetch all OPEN tasks (status = open).
  * @returns {Promise<{ok:boolean, data:Task[], message:string}>}
  */
 export async function fetchTasks() {
-    return request("/tasks");
+    return request(
+        `${REST}/tasks?status=eq.open&select=*&order=created_at.desc`
+    );
 }
 
 /**
- * Fetch ALL tasks regardless of status (for client dashboard).
+ * Fetch ALL tasks regardless of status (client dashboard).
  * @returns {Promise<{ok:boolean, data:Task[], message:string}>}
  */
 export async function fetchAllTasks() {
-    return request("/tasks/all");
+    return request(
+        `${REST}/tasks?select=*&order=created_at.desc`
+    );
 }
 
 /**
@@ -116,7 +110,12 @@ export async function fetchAllTasks() {
  * @param {string} taskId
  */
 export async function fetchTask(taskId) {
-    return request(`/tasks/${taskId}`);
+    const res = await request(`${REST}/tasks?id=eq.${encodeURIComponent(taskId)}&select=*`);
+    // PostgREST returns an array even for a single row; unwrap it
+    if (res.ok && Array.isArray(res.data)) {
+        res.data = res.data[0] ?? null;
+    }
+    return res;
 }
 
 /**
@@ -124,9 +123,9 @@ export async function fetchTask(taskId) {
  * @param {{ title:string, category:string, budget:number, description:string, client_id:string }} payload
  */
 export async function createTask(payload) {
-    return request("/tasks", {
-        method: "POST",
-        body: JSON.stringify(payload),
+    return request(`${REST}/tasks`, {
+        method:  "POST",
+        body:    JSON.stringify({ ...payload, status: "open" }),
     });
 }
 
@@ -136,9 +135,10 @@ export async function createTask(payload) {
  * @param {"open"|"in_progress"|"completed"|"cancelled"} newStatus
  */
 export async function updateTaskStatus(taskId, newStatus) {
-    return request(`/tasks/${taskId}/status?new_status=${encodeURIComponent(newStatus)}`, {
-        method: "PATCH",
-    });
+    return request(
+        `${REST}/tasks?id=eq.${encodeURIComponent(taskId)}`,
+        { method: "PATCH", body: JSON.stringify({ status: newStatus }) }
+    );
 }
 
 /**
@@ -146,7 +146,10 @@ export async function updateTaskStatus(taskId, newStatus) {
  * @param {string} taskId
  */
 export async function deleteTask(taskId) {
-    return request(`/tasks/${taskId}`, { method: "DELETE" });
+    return request(
+        `${REST}/tasks?id=eq.${encodeURIComponent(taskId)}`,
+        { method: "DELETE" }
+    );
 }
 
 
@@ -154,11 +157,11 @@ export async function deleteTask(taskId) {
 
 /**
  * Fetch all bids, optionally filtered by task ID.
- * @param {string} [taskId]
+ * @param {string|null} [taskId]
  */
 export async function fetchBids(taskId = null) {
-    const query = taskId ? `?task_id=${encodeURIComponent(taskId)}` : "";
-    return request(`/bids${query}`);
+    const filter = taskId ? `?task_id=eq.${encodeURIComponent(taskId)}&select=*` : `?select=*`;
+    return request(`${REST}/bids${filter}&order=bid_amount.asc`);
 }
 
 /**
@@ -166,18 +169,33 @@ export async function fetchBids(taskId = null) {
  * @param {{ task_id:string, student_id:string, bid_amount:number, proposal:string }} payload
  */
 export async function placeBid(payload) {
-    return request("/bids", {
+    return request(`${REST}/bids`, {
         method: "POST",
-        body: JSON.stringify(payload),
+        body:   JSON.stringify({ ...payload, status: "pending" }),
     });
 }
 
 /**
- * Accept a bid (also moves task → in_progress).
+ * Accept a bid (sets bid status → accepted, task status → in_progress).
+ * Supabase doesn't cascade automatically — we do two PATCHes here.
  * @param {string} bidId
  */
 export async function acceptBid(bidId) {
-    return request(`/bids/${bidId}/accept`, { method: "PATCH" });
+    // 1. Accept the bid
+    const res = await request(
+        `${REST}/bids?id=eq.${encodeURIComponent(bidId)}`,
+        { method: "PATCH", body: JSON.stringify({ status: "accepted" }) }
+    );
+    if (!res.ok) return res;
+
+    // 2. Move the parent task to in_progress
+    //    We need the task_id — it comes back from the PATCH (Prefer: return=representation)
+    const bid = Array.isArray(res.data) ? res.data[0] : res.data;
+    if (bid?.task_id) {
+        await updateTaskStatus(bid.task_id, "in_progress");
+    }
+
+    return res;
 }
 
 /**
@@ -185,7 +203,10 @@ export async function acceptBid(bidId) {
  * @param {string} bidId
  */
 export async function rejectBid(bidId) {
-    return request(`/bids/${bidId}/reject`, { method: "PATCH" });
+    return request(
+        `${REST}/bids?id=eq.${encodeURIComponent(bidId)}`,
+        { method: "PATCH", body: JSON.stringify({ status: "rejected" }) }
+    );
 }
 
 /**
@@ -193,7 +214,10 @@ export async function rejectBid(bidId) {
  * @param {string} bidId
  */
 export async function deleteBid(bidId) {
-    return request(`/bids/${bidId}`, { method: "DELETE" });
+    return request(
+        `${REST}/bids?id=eq.${encodeURIComponent(bidId)}`,
+        { method: "DELETE" }
+    );
 }
 
 
@@ -203,7 +227,7 @@ export async function deleteBid(bidId) {
  * Fetch all users.
  */
 export async function fetchUsers() {
-    return request("/users");
+    return request(`${REST}/users?select=*`);
 }
 
 /**
@@ -211,7 +235,11 @@ export async function fetchUsers() {
  * @param {string} userId
  */
 export async function fetchUser(userId) {
-    return request(`/users/${userId}`);
+    const res = await request(`${REST}/users?id=eq.${encodeURIComponent(userId)}&select=*`);
+    if (res.ok && Array.isArray(res.data)) {
+        res.data = res.data[0] ?? null;
+    }
+    return res;
 }
 
 /**
@@ -219,8 +247,8 @@ export async function fetchUser(userId) {
  * @param {{ full_name:string, email:string, role:"client"|"student", phone?:string }} payload
  */
 export async function createUser(payload) {
-    return request("/users", {
+    return request(`${REST}/users`, {
         method: "POST",
-        body: JSON.stringify(payload),
+        body:   JSON.stringify(payload),
     });
 }
