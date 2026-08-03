@@ -18,3 +18,6 @@ python-dotenv>=1.0.0
 
 # Data validation — v1 is 100% pure Python (no Rust)
 pydantic>=1.10.0,<2.0.0
+
+# Async file I/O — required by FastAPI StaticFiles + FileResponse
+aiofiles>=23.0.0
