@@ -1,14 +1,7 @@
 {
   "version": 2,
-  "functions": {
-    "api/index.py": {
-      "runtime": "python3.9"
-    }
-  },
+  "outputDirectory": "frontend",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.py" },
-    { "source": "/js/(.*)",  "destination": "/frontend/js/$1" },
-    { "source": "/style.css","destination": "/frontend/style.css" },
-    { "source": "/(.*)",     "destination": "/frontend/index.html" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
