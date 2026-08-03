@@ -98,6 +98,19 @@ CREATE POLICY "anon_read_users"
     ON users FOR SELECT
     USING (true);
 
+CREATE POLICY "anon_insert_users"
+    ON users FOR INSERT
+    WITH CHECK (true);
+
+CREATE POLICY "anon_update_users"
+    ON users FOR UPDATE
+    USING (true)
+    WITH CHECK (true);
+
+CREATE POLICY "anon_delete_users"
+    ON users FOR DELETE
+    USING (true);
+
 
 -- ---- tasks ----
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
@@ -111,6 +124,19 @@ CREATE POLICY "anon_read_tasks"
     ON tasks FOR SELECT
     USING (true);
 
+CREATE POLICY "anon_insert_tasks"
+    ON tasks FOR INSERT
+    WITH CHECK (true);
+
+CREATE POLICY "anon_update_tasks"
+    ON tasks FOR UPDATE
+    USING (true)
+    WITH CHECK (true);
+
+CREATE POLICY "anon_delete_tasks"
+    ON tasks FOR DELETE
+    USING (true);
+
 
 -- ---- bids ----
 ALTER TABLE bids ENABLE ROW LEVEL SECURITY;
@@ -122,4 +148,17 @@ CREATE POLICY "service_role_all_bids"
 
 CREATE POLICY "anon_read_bids"
     ON bids FOR SELECT
+    USING (true);
+
+CREATE POLICY "anon_insert_bids"
+    ON bids FOR INSERT
+    WITH CHECK (true);
+
+CREATE POLICY "anon_update_bids"
+    ON bids FOR UPDATE
+    USING (true)
+    WITH CHECK (true);
+
+CREATE POLICY "anon_delete_bids"
+    ON bids FOR DELETE
     USING (true);
