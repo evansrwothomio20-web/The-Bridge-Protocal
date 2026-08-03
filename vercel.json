@@ -1,7 +1,14 @@
 {
   "version": 2,
-  "outputDirectory": "frontend",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+  "builds": [
+    {
+      "src": "frontend/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    { "src": "/js/(.*)",   "dest": "/frontend/js/$1" },
+    { "src": "/style.css", "dest": "/frontend/style.css" },
+    { "src": "/(.*)",      "dest": "/frontend/index.html" }
   ]
 }
