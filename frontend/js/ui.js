@@ -163,7 +163,7 @@ export function showError(message) {
 
     const hint = isLocal
         ? `Ensure the backend is running:<br><code>uvicorn main:app --reload</code>`
-        : `The backend API is not yet deployed to production. Tasks will load once the backend is live.`;
+        : `Backend API call failed. Check that <code>SUPABASE_URL</code> and <code>SUPABASE_KEY</code> are set in your Vercel project's Environment Variables, then redeploy.`;
 
     container.innerHTML = `
         <div class="error-state" role="alert">
