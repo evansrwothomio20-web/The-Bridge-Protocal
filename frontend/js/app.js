@@ -366,6 +366,18 @@ async function handlePlaceBid(e) {
         return;
     }
 
+    if (proposal.length < 5) {
+        toast("error", "Proposal Too Short", "Your proposal must be at least 5 characters.");
+        setButtonLoading(submitBtn, false);
+        return;
+    }
+
+    if (bid_amount <= 0) {
+        toast("error", "Invalid Amount", "Bid amount must be greater than 0.");
+        setButtonLoading(submitBtn, false);
+        return;
+    }
+
     const { ok, message } = await placeBid({
         task_id,
         student_id,
