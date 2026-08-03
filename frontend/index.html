@@ -46,6 +46,15 @@
             </div>
         </div>
 
+        <nav class="nav-center" role="navigation" aria-label="View tabs">
+            <button id="marketplace-tab-btn" class="nav-tab active" aria-label="Browse marketplace tasks">
+                <span aria-hidden="true">🛒</span> Marketplace
+            </button>
+            <button id="my-tasks-tab-btn" class="nav-tab" aria-label="View my posted tasks and bids">
+                <span aria-hidden="true">📋</span> My Tasks
+            </button>
+        </nav>
+
         <nav class="nav-right" role="navigation" aria-label="Primary navigation">
             <button id="open-post-task-btn" class="btn btn-primary" aria-haspopup="dialog">
                 <span class="btn-icon" aria-hidden="true">+</span>
@@ -92,9 +101,9 @@
         </section>
 
         <!-- ═══════════════════════════════════════
-             TASKS FEED
+             MARKETPLACE TASKS FEED
         ═══════════════════════════════════════ -->
-        <section class="tasks-section" aria-labelledby="tasks-heading">
+        <section id="tasks-section" class="tasks-section" aria-labelledby="tasks-heading">
             <div class="section-toolbar">
                 <h3 id="tasks-heading" class="section-title">Available Micro-Tasks</h3>
                 <button id="refresh-btn" class="btn btn-ghost" aria-label="Refresh task list">
@@ -118,7 +127,62 @@
                 <!-- Populated by ui.js -->
             </div>
         </section>
+
+        <!-- ═══════════════════════════════════════
+             MY TASKS — CLIENT DASHBOARD
+        ═══════════════════════════════════════ -->
+        <section id="my-tasks-section" class="tasks-section hidden" aria-labelledby="my-tasks-heading">
+            <div class="section-toolbar">
+                <div class="section-title-group">
+                    <h3 id="my-tasks-heading" class="section-title">My Posted Tasks</h3>
+                    <p class="section-subtitle">Click <strong>View Bids</strong> on any task to browse and compare bids from students — sorted by best value.</p>
+                </div>
+                <button id="refresh-btn-my" class="btn btn-ghost" aria-label="Refresh my tasks">
+                    <span class="refresh-icon" aria-hidden="true">↻</span>
+                    Refresh
+                </button>
+            </div>
+
+            <!-- My Tasks List -->
+            <div id="my-tasks-container" class="my-tasks-list" role="list" aria-label="My posted tasks">
+                <!-- Populated by ui.js -->
+            </div>
+        </section>
+
     </main>
+
+    <!-- ═══════════════════════════════════════════
+         BIDS PANEL — SLIDE-IN DRAWER
+    ═══════════════════════════════════════════ -->
+    <div id="bids-panel-overlay" class="bids-panel-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="bids-panel-title">
+        <div class="bids-panel" role="document">
+            <div class="bids-panel-header">
+                <div class="bids-panel-title-group">
+                    <div class="bids-panel-icon" aria-hidden="true">🏷️</div>
+                    <div>
+                        <h3 id="bids-panel-title" class="bids-panel-title">Bids for Task</h3>
+                        <p id="bids-panel-task-title" class="bids-panel-task-name"></p>
+                    </div>
+                </div>
+                <button id="close-bids-panel-btn" class="icon-btn" aria-label="Close bids panel">&times;</button>
+            </div>
+
+            <div class="bids-panel-meta">
+                <span id="bids-panel-task-budget" class="bids-panel-budget"></span>
+                <span id="bids-panel-count" class="bids-panel-count"></span>
+            </div>
+
+            <div class="bids-panel-hint">
+                <span class="hint-icon" aria-hidden="true">💡</span>
+                Bids are ranked cheapest first — the <strong>🏆 Best Value</strong> bid is at the top.
+            </div>
+
+            <!-- Bids List -->
+            <div id="bids-panel-list" class="bids-panel-list" aria-label="Bids list">
+                <!-- Populated by ui.js renderBidsInPanel() -->
+            </div>
+        </div>
+    </div>
 
     <!-- ═══════════════════════════════════════════
          POST TASK MODAL

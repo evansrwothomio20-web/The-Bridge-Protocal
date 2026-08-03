@@ -54,6 +54,30 @@ def get_tasks():
 
 
 @router.get(
+    "/all",
+    response_model=List[TaskResponse],
+    summary="List ALL tasks (any status)",
+    description="Returns every task regardless of status — used by the client dashboard.",
+)
+def get_all_tasks():
+    """Fetch all tasks (any status) from Supabase via REST API."""
+    settings.validate()
+    try:
+        with httpx.Client() as client:
+            response = client.get(
+                f"{REST_URL}/tasks",
+                headers=get_headers(),
+                params={"select": "*", "order": "created_at.desc"},
+            )
+        _raise_for_status(response, "Failed to fetch all tasks")
+        return response.json()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+
+
+@router.get(
     "/{task_id}",
     response_model=TaskResponse,
     summary="Get a single task by ID",

@@ -21,14 +21,12 @@
  */
 
 // Auto-detect environment:
-// • Local dev  → backend runs on localhost:8000
-// • Production → set VITE_API_URL or API_BASE env var, or deploy backend separately
+// • Local dev  → FastAPI backend runs on localhost:8000
+// • Production → Vercel serves the FastAPI backend at /api on the same domain
 const IS_LOCAL = window.location.hostname === "localhost" ||
                  window.location.hostname === "127.0.0.1";
 
-const BASE_URL = IS_LOCAL
-    ? "http://127.0.0.1:8000/api"
-    : (window.BRIDGE_API_URL || "https://the-bridge-api.vercel.app/api");
+const BASE_URL = IS_LOCAL ? "http://127.0.0.1:8000/api" : "/api";
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -103,6 +101,14 @@ function extractErrorMessage(body) {
  */
 export async function fetchTasks() {
     return request("/tasks");
+}
+
+/**
+ * Fetch ALL tasks regardless of status (for client dashboard).
+ * @returns {Promise<{ok:boolean, data:Task[], message:string}>}
+ */
+export async function fetchAllTasks() {
+    return request("/tasks/all");
 }
 
 /**

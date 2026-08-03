@@ -13,8 +13,12 @@
 
 import {
     fetchTasks,
+    fetchAllTasks,
     createTask,
     placeBid,
+    fetchBids,
+    acceptBid,
+    rejectBid,
 } from "./api.js";
 
 import {
@@ -28,6 +32,10 @@ import {
     toast,
     setButtonLoading,
     wireCharCounter,
+    renderMyTasks,
+    showBidsPanel,
+    closeBidsPanel,
+    renderBidsInPanel,
 } from "./ui.js";
 
 
@@ -38,6 +46,9 @@ let allTasks = [];
 
 /** @type {string} Currently selected category filter */
 let activeFilter = "All";
+
+/** @type {"marketplace"|"myTasks"} Active view tab */
+let activeView = "marketplace";
 
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
@@ -52,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // ─── Data Loading ─────────────────────────────────────────────────────────────
 
 /**
- * Fetch tasks from the backend and render them.
+ * Fetch open tasks from the backend and render them.
  * Shows skeleton cards while loading, error state on failure.
  */
 async function loadTasks() {
@@ -70,6 +81,45 @@ async function loadTasks() {
     renderTasks(allTasks, activeFilter, handleBidClick);
 }
 
+/**
+ * Fetch ALL tasks (any status) and render the My Tasks dashboard.
+ */
+async function loadMyTasks() {
+    showSkeletons(6);
+
+    const { ok, data, message } = await fetchAllTasks();
+
+    if (!ok) {
+        showError(message);
+        toast("error", "Could not load your tasks", message);
+        return;
+    }
+
+    const tasks = Array.isArray(data) ? data : [];
+    renderMyTasks(tasks, handleViewBids);
+}
+
+/**
+ * Fetch bids for a task and render them in the bids panel, sorted cheapest-first.
+ * @param {Task} task
+ */
+async function loadBidsForTask(task) {
+    renderBidsInPanel(null, task); // show loading state
+
+    const { ok, data, message } = await fetchBids(task.id);
+
+    if (!ok) {
+        toast("error", "Could not load bids", message);
+        return;
+    }
+
+    // Sort bids cheapest → most expensive (best deal first)
+    const bids = (Array.isArray(data) ? data : [])
+        .sort((a, b) => a.bid_amount - b.bid_amount);
+
+    renderBidsInPanel(bids, task, handleAcceptBid, handleRejectBid);
+}
+
 
 // ─── Event Wiring ─────────────────────────────────────────────────────────────
 
@@ -78,13 +128,29 @@ function setupEventListeners() {
     document.getElementById("open-post-task-btn")
         ?.addEventListener("click", openPostTaskModal);
 
-    // ── Refresh button
+    // ── Navbar: My Tasks tab
+    document.getElementById("my-tasks-tab-btn")
+        ?.addEventListener("click", () => switchView("myTasks"));
+
+    // ── Navbar: Marketplace tab
+    document.getElementById("marketplace-tab-btn")
+        ?.addEventListener("click", () => switchView("marketplace"));
+
+    // ── Refresh button (Marketplace)
     document.getElementById("refresh-btn")
         ?.addEventListener("click", () => {
-            activeFilter = "All";
-            syncFilterChips();
-            loadTasks();
+            if (activeView === "marketplace") {
+                activeFilter = "All";
+                syncFilterChips();
+                loadTasks();
+            } else {
+                loadMyTasks();
+            }
         });
+
+    // ── Refresh button (My Tasks section)
+    document.getElementById("refresh-btn-my")
+        ?.addEventListener("click", () => loadMyTasks());
 
     // ── Post Task modal — close buttons
     document.getElementById("close-post-task-btn")
@@ -110,6 +176,16 @@ function setupEventListeners() {
             if (e.target === e.currentTarget) closeBidModal();
         });
 
+    // ── Bids Panel — close button
+    document.getElementById("close-bids-panel-btn")
+        ?.addEventListener("click", closeBidsPanel);
+
+    // ── Bids Panel — backdrop click
+    document.getElementById("bids-panel-overlay")
+        ?.addEventListener("click", (e) => {
+            if (e.target === e.currentTarget) closeBidsPanel();
+        });
+
     // ── Category filter chips
     document.getElementById("filter-bar")
         ?.addEventListener("click", (e) => {
@@ -128,12 +204,43 @@ function setupEventListeners() {
     document.getElementById("place-bid-form")
         ?.addEventListener("submit", handlePlaceBid);
 
-    // ── Global: close modal on Escape key
+    // ── Global: close modals on Escape key
     document.addEventListener("keydown", (e) => {
         if (e.key !== "Escape") return;
         closePostTaskModal();
         closeBidModal();
+        closeBidsPanel();
     });
+}
+
+/**
+ * Switch between "marketplace" and "myTasks" views.
+ * @param {"marketplace"|"myTasks"} view
+ */
+function switchView(view) {
+    activeView = view;
+
+    const marketSection = document.getElementById("tasks-section");
+    const myTasksSection = document.getElementById("my-tasks-section");
+    const marketBtn = document.getElementById("marketplace-tab-btn");
+    const myTasksBtn = document.getElementById("my-tasks-tab-btn");
+    const postBtn = document.getElementById("open-post-task-btn");
+
+    if (view === "marketplace") {
+        marketSection?.classList.remove("hidden");
+        myTasksSection?.classList.add("hidden");
+        marketBtn?.classList.add("active");
+        myTasksBtn?.classList.remove("active");
+        postBtn?.classList.remove("hidden");
+        loadTasks();
+    } else {
+        marketSection?.classList.add("hidden");
+        myTasksSection?.classList.remove("hidden");
+        marketBtn?.classList.remove("active");
+        myTasksBtn?.classList.add("active");
+        postBtn?.classList.add("hidden");
+        loadMyTasks();
+    }
 }
 
 /**
@@ -154,6 +261,46 @@ function syncFilterChips() {
  */
 function handleBidClick(task) {
     openBidModal(task);
+}
+
+/**
+ * Called when the user clicks "View Bids" on a task in My Tasks view.
+ * @param {Task} task
+ */
+function handleViewBids(task) {
+    showBidsPanel(task);
+    loadBidsForTask(task);
+}
+
+/**
+ * Accept a bid — then refresh the bids panel for the same task.
+ * @param {string} bidId
+ * @param {Task} task
+ */
+async function handleAcceptBid(bidId, task) {
+    const { ok, message } = await acceptBid(bidId);
+    if (ok) {
+        toast("success", "Bid Accepted! 🎉", "The task is now in progress.");
+        loadBidsForTask(task); // Refresh bids in panel
+        loadMyTasks();         // Refresh task list too
+    } else {
+        toast("error", "Accept Failed", message);
+    }
+}
+
+/**
+ * Reject a bid — then refresh the bids panel.
+ * @param {string} bidId
+ * @param {Task} task
+ */
+async function handleRejectBid(bidId, task) {
+    const { ok, message } = await rejectBid(bidId);
+    if (ok) {
+        toast("info", "Bid Rejected", "The bid has been rejected.");
+        loadBidsForTask(task);
+    } else {
+        toast("error", "Reject Failed", message);
+    }
 }
 
 /**
@@ -192,7 +339,6 @@ async function handleCreateTask(e) {
     if (ok) {
         closePostTaskModal();
         toast("success", "Task Posted! 🎉", "Your task is now live on the marketplace.");
-        // Reload task list to include the new task
         await loadTasks();
     } else {
         toast("error", "Failed to Post Task", message);

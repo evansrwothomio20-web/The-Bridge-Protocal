@@ -430,3 +430,206 @@ export function wireCharCounter(textareaId, counterId, max) {
 
     ta.addEventListener("input", update);
 }
+
+
+// ─── My Tasks — client dashboard ─────────────────────────────────────────────
+
+const STATUS_ICON = {
+    open:        "🟢",
+    in_progress: "🔵",
+    completed:   "✅",
+    cancelled:   "❌",
+};
+
+/**
+ * Render the client's task list in the #my-tasks-container element.
+ * @param {Task[]} tasks
+ * @param {Function} onViewBids  - Callback: (task) => void
+ */
+export function renderMyTasks(tasks, onViewBids) {
+    const container = document.getElementById("my-tasks-container");
+    if (!container) return;
+
+    // Update stat counter
+    const statEl = document.getElementById("stat-tasks-count");
+    if (statEl) statEl.textContent = tasks.filter(t => t.status === "open").length;
+
+    if (tasks.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" role="status">
+                <div class="empty-state-icon">📭</div>
+                <h4>No Tasks Yet</h4>
+                <p>You haven't posted any tasks. Click <strong>Post a Task</strong> to get started.</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = "";
+
+    tasks.forEach((task) => {
+        const card = document.createElement("div");
+        card.className = "my-task-row";
+        card.setAttribute("role", "listitem");
+
+        const icon  = STATUS_ICON[task.status] || "⚙️";
+        const label = STATUS_LABEL[task.status] || task.status;
+        const cls   = STATUS_CSS[task.status]   || "status--open";
+
+        card.innerHTML = `
+            <div class="my-task-info">
+                <div class="my-task-header">
+                    <span class="category-tag small ${catClass(task.category)}">
+                        ${catEmoji(task.category)} ${esc(task.category)}
+                    </span>
+                    <span class="status-badge ${cls}">${icon} ${esc(label)}</span>
+                </div>
+                <h4 class="my-task-title">${esc(task.title)}</h4>
+                <p class="my-task-desc">${esc(task.description)}</p>
+                <div class="my-task-meta">
+                    <span class="task-budget">${formatUGX(task.budget)}</span>
+                    ${task.created_at ? `<span class="task-date">Posted ${formatDate(task.created_at)}</span>` : ""}
+                </div>
+            </div>
+            <button
+                class="btn btn-view-bids"
+                data-task-id="${esc(task.id)}"
+                aria-label="View bids for ${esc(task.title)}"
+            >
+                <span class="bids-icon" aria-hidden="true">🏷️</span>
+                View Bids
+            </button>
+        `;
+
+        card.querySelector(".btn-view-bids")?.addEventListener("click", () => {
+            onViewBids && onViewBids(task);
+        });
+
+        container.appendChild(card);
+    });
+}
+
+
+// ─── Bids Panel (slide-in drawer) ─────────────────────────────────────────────
+
+/**
+ * Open the bids panel overlay for a specific task.
+ * @param {Task} task
+ */
+export function showBidsPanel(task) {
+    const overlay = document.getElementById("bids-panel-overlay");
+    const titleEl = document.getElementById("bids-panel-task-title");
+    const budgetEl = document.getElementById("bids-panel-task-budget");
+
+    if (titleEl)  titleEl.textContent  = task.title;
+    if (budgetEl) budgetEl.textContent = `Budget: ${formatUGX(task.budget)}`;
+
+    if (overlay) {
+        overlay.classList.remove("hidden");
+        requestAnimationFrame(() => overlay.classList.add("open"));
+    }
+}
+
+/**
+ * Close the bids panel overlay.
+ */
+export function closeBidsPanel() {
+    const overlay = document.getElementById("bids-panel-overlay");
+    if (overlay) {
+        overlay.classList.remove("open");
+        overlay.addEventListener("transitionend", () => overlay.classList.add("hidden"), { once: true });
+    }
+}
+
+/**
+ * Render bids inside the bids panel.
+ * Pass null to show a loading spinner.
+ * @param {Bid[]|null} bids       - null = loading state
+ * @param {Task} task
+ * @param {Function} onAccept     - (bidId, task) => void
+ * @param {Function} onReject     - (bidId, task) => void
+ */
+export function renderBidsInPanel(bids, task, onAccept, onReject) {
+    const list = document.getElementById("bids-panel-list");
+    if (!list) return;
+
+    // Loading state
+    if (bids === null) {
+        list.innerHTML = `
+            <div class="bids-loading">
+                <div class="bid-skeleton"></div>
+                <div class="bid-skeleton"></div>
+                <div class="bid-skeleton"></div>
+            </div>
+        `;
+        return;
+    }
+
+    const countEl = document.getElementById("bids-panel-count");
+    if (countEl) countEl.textContent = `${bids.length} bid${bids.length !== 1 ? "s" : ""}`;
+
+    if (bids.length === 0) {
+        list.innerHTML = `
+            <div class="empty-state bids-empty" role="status">
+                <div class="empty-state-icon">🤷</div>
+                <h4>No Bids Yet</h4>
+                <p>No one has bid on this task yet. Check back soon!</p>
+            </div>
+        `;
+        return;
+    }
+
+    list.innerHTML = "";
+
+    const taskIsOpen = task.status === "open";
+
+    bids.forEach((bid, index) => {
+        const isBest = index === 0; // cheapest = best value
+        const isPending = bid.status === "pending";
+
+        const BID_STATUS_ICON = { pending: "⏳", accepted: "✅", rejected: "❌" };
+        const BID_STATUS_CSS  = { pending: "bid-status--pending", accepted: "bid-status--accepted", rejected: "bid-status--rejected" };
+
+        const bidCard = document.createElement("div");
+        bidCard.className = `bid-card ${isBest ? "bid-card--best" : ""} bid-status-${bid.status}`;
+
+        bidCard.innerHTML = `
+            ${isBest ? `<div class="best-bid-badge">🏆 Best Value</div>` : ""}
+            <div class="bid-card-header">
+                <div class="bid-rank">#${index + 1}</div>
+                <div class="bid-amount-block">
+                    <span class="bid-amount">${formatUGX(bid.bid_amount)}</span>
+                    ${isBest ? `<span class="bid-savings-tag">Lowest Bid</span>` : ""}
+                </div>
+                <span class="bid-status-pill ${BID_STATUS_CSS[bid.status] || "bid-status--pending"}">
+                    ${BID_STATUS_ICON[bid.status] || "⏳"} ${esc(bid.status)}
+                </span>
+            </div>
+            <div class="bid-proposal-text">${esc(bid.proposal)}</div>
+            <div class="bid-card-footer">
+                <span class="bid-date">${bid.created_at ? formatDate(bid.created_at) : ""}</span>
+                ${taskIsOpen && isPending ? `
+                    <div class="bid-actions">
+                        <button class="btn btn-accept" data-bid-id="${esc(bid.id)}" aria-label="Accept this bid">
+                            ✅ Accept
+                        </button>
+                        <button class="btn btn-reject" data-bid-id="${esc(bid.id)}" aria-label="Reject this bid">
+                            ✕ Reject
+                        </button>
+                    </div>
+                ` : ""}
+            </div>
+        `;
+
+        if (taskIsOpen && isPending) {
+            bidCard.querySelector(".btn-accept")?.addEventListener("click", () => {
+                onAccept && onAccept(bid.id, task);
+            });
+            bidCard.querySelector(".btn-reject")?.addEventListener("click", () => {
+                onReject && onReject(bid.id, task);
+            });
+        }
+
+        list.appendChild(bidCard);
+    });
+}
