@@ -172,9 +172,23 @@
                 <span id="bids-panel-count" class="bids-panel-count"></span>
             </div>
 
-            <!-- Task Lifecycle Stepper & Action Header (Improvement 4) -->
+            <!-- Task Lifecycle Stepper (Improvement 4) -->
             <div id="bids-panel-stepper" class="task-stepper-wrapper">
-                <!-- Populated dynamically by ui.js -->
+                <!-- Populated dynamically by ui.js renderTaskStepper() -->
+            </div>
+
+            <!-- Contact Details Box (Improvement 6 — In-App Direct Contact) -->
+            <div id="contact-details-box" class="contact-details-box hidden" role="region" aria-label="Direct Contact Details">
+                <div class="contact-box-header">
+                    <span class="contact-box-icon" aria-hidden="true">📞</span>
+                    <div>
+                        <h4 class="contact-box-title">Direct Contact Unlocked</h4>
+                        <p class="contact-box-subtitle">Bid accepted — coordinate directly on campus</p>
+                    </div>
+                </div>
+                <div id="contact-box-body" class="contact-box-body">
+                    <!-- Populated dynamically by ui.js renderContactBox() -->
+                </div>
             </div>
 
             <div class="bids-panel-hint">

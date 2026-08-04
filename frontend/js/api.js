@@ -320,3 +320,17 @@ export function fetchAllReviews() {
     return request(`${REST}/reviews?select=*`);
 }
 
+
+// ─── User Lookup (Improvement 6 — In-App Direct Contact) ─────────────────────
+
+/**
+ * Fetch a single user's public profile (name, phone, role).
+ * @param {string} userId
+ */
+export function fetchUserById(userId) {
+    return request(
+        `${REST}/users?id=eq.${encodeURIComponent(userId)}&select=id,full_name,phone,role&limit=1`
+    );
+}
+
+

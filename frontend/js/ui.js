@@ -667,8 +667,9 @@ export function renderTaskStepper(task, onSubmitWork, onApproveComplete) {
  * @param {Task} task
  * @param {Function} [onSubmitWork]
  * @param {Function} [onApproveComplete]
+ * @param {Function} [onLeaveReview]
  */
-export function showBidsPanel(task, onSubmitWork, onApproveComplete) {
+export function showBidsPanel(task, onSubmitWork, onApproveComplete, onLeaveReview) {
     const overlay = document.getElementById("bids-panel-overlay");
     const titleEl = document.getElementById("bids-panel-task-title");
     const budgetEl = document.getElementById("bids-panel-task-budget");
@@ -676,7 +677,10 @@ export function showBidsPanel(task, onSubmitWork, onApproveComplete) {
     if (titleEl)  titleEl.textContent  = task.title;
     if (budgetEl) budgetEl.textContent = `Budget: ${formatUGX(task.budget)}`;
 
-    renderTaskStepper(task, onSubmitWork, onApproveComplete);
+    renderTaskStepper(task, onSubmitWork, onApproveComplete, onLeaveReview);
+
+    // Show privacy shield immediately; contact box fills in async after bid fetch
+    renderContactBox(null, task.status);
 
     if (overlay) {
         overlay.classList.remove("hidden");
@@ -987,4 +991,132 @@ export function openReviewModal(task, revieweeId) {
 export function closeReviewModal() {
     closeModal("review-modal");
     document.getElementById("create-review-form")?.reset();
+}
+
+
+// ─── In-App Direct Contact (Improvement 6) ─────────────────────────────────────
+
+/**
+ * Format a Ugandan phone number into a valid wa.me URL.
+ * Strips non-digits, converts leading 07x / 06x to 2567x / 2566x.
+ * @param {string} phone
+ * @returns {string} e.g. "https://wa.me/256700123456"
+ */
+export function formatWhatsAppUrl(phone) {
+    if (!phone) return "#";
+    // Remove all non-numeric characters
+    let digits = phone.replace(/\D/g, "");
+
+    // Uganda: 07x/06x → 2567x/2566x, already +256 → keep
+    if (digits.startsWith("0") && digits.length >= 9) {
+        digits = "256" + digits.slice(1);
+    } else if (digits.startsWith("7") && digits.length === 9) {
+        digits = "256" + digits;
+    } else if (digits.startsWith("6") && digits.length === 9) {
+        digits = "256" + digits;
+    }
+
+    return `https://wa.me/${digits}`;
+}
+
+/**
+ * Mask a phone number for display: show only last 4 digits.
+ * e.g. "+256 700 *** 456"
+ * @param {string} phone
+ * @returns {string}
+ */
+export function maskPhone(phone) {
+    if (!phone) return "No phone on file";
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 4) return phone;
+    const visible = digits.slice(-4);
+    const masked  = "*".repeat(Math.max(0, digits.length - 4));
+    return `+${masked.slice(0, -4)}${masked.slice(-4)}${visible}`.replace(/\+\*+/, "+256 ●●● ●●● ");
+}
+
+/**
+ * Render (or hide) the Contact Details Box inside the bids panel.
+ *
+ * @param {Object|null} user        - The accepted student or client user object, or null for loading/hidden state
+ * @param {string}      taskStatus  - Current task status
+ */
+export function renderContactBox(user, taskStatus) {
+    const box     = document.getElementById("contact-details-box");
+    const body    = document.getElementById("contact-box-body");
+    if (!box || !body) return;
+
+    const UNLOCKED_STATUSES = ["assigned", "in_progress", "submitted", "completed"];
+    const isUnlocked = UNLOCKED_STATUSES.includes(taskStatus);
+
+    // Always show the box once status is not 'open'
+    box.classList.toggle("hidden", false);
+
+    if (!isUnlocked) {
+        // Privacy shield — contacts hidden while task is open
+        body.innerHTML = `
+            <div class="contact-privacy-shield">
+                <span class="shield-icon">🔒</span>
+                <span>Contact details are <strong>revealed only after a bid is accepted</strong> to protect everyone's privacy.</span>
+            </div>
+        `;
+        return;
+    }
+
+    if (user === null) {
+        // Loading skeleton
+        body.innerHTML = `
+            <div class="contact-loading">
+                <div class="skeleton-avatar"></div>
+                <div class="skeleton-lines">
+                    <div class="skeleton-line"></div>
+                    <div class="skeleton-line short"></div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    if (!user || (!user.phone && !user.full_name)) {
+        body.innerHTML = `
+            <div class="contact-privacy-shield">
+                <span class="shield-icon">❕</span>
+                <span>No contact info available for this user yet.</span>
+            </div>
+        `;
+        return;
+    }
+
+    const name      = user.full_name || "Student";
+    const initials  = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+    const phone     = user.phone || null;
+    const waUrl     = phone ? formatWhatsAppUrl(phone) : null;
+    const telUrl    = phone ? `tel:${phone.replace(/\s/g, "")}` : null;
+    const maskedPh  = phone ? maskPhone(phone) : null;
+    const roleIcon  = user.role === "client" ? "🏢" : "🎓";
+
+    body.innerHTML = `
+        <div class="contact-person-card">
+            <div class="contact-person-avatar">${esc(initials)}</div>
+            <div class="contact-person-info">
+                <p class="contact-person-name">${esc(name)}</p>
+                <span class="contact-person-role">${roleIcon} ${esc(user.role || "Student")}</span>
+                ${maskedPh ? `<div class="contact-phone-masked">📞 ${esc(maskedPh)}</div>` : ""}
+            </div>
+        </div>
+        ${phone ? `
+        <div class="contact-actions">
+            <a href="${esc(telUrl)}" class="btn-contact-call" aria-label="Call ${esc(name)}">
+                📞 Call
+            </a>
+            <a href="${esc(waUrl)}" target="_blank" rel="noopener noreferrer" class="btn-contact-whatsapp" aria-label="WhatsApp ${esc(name)}">
+                💬 WhatsApp
+            </a>
+        </div>
+        ` : `
+        <div class="contact-privacy-shield" style="margin-top:0">
+            <span class="shield-icon">📵</span>
+            <span>${esc(name)} hasn’t added a phone number yet.</span>
+        </div>
+        `}
+    `;
 }

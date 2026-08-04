@@ -23,6 +23,7 @@ import {
     updateTaskStatus,
     submitReview,
     fetchAllReviews,
+    fetchUserById,
 } from "./api.js";
 
 import {
@@ -49,6 +50,7 @@ import {
     closeReviewModal,
     initStarRatingWidget,
     renderStudentRatingBadge,
+    renderContactBox,
 } from "./ui.js";
 
 
@@ -132,10 +134,12 @@ async function loadReviews() {
 
 /**
  * Fetch bids for a task and render them in the bids panel, sorted cheapest-first.
+ * After fetching, also resolves the accepted student contact info (Improvement 6).
  * @param {Task} task
  */
 async function loadBidsForTask(task) {
     renderBidsInPanel(null, task, handleAcceptBid, handleRejectBid, handleWorkSubmitted, handleWorkCompleted, handleLeaveReview, allReviews); // show loading state
+    renderContactBox(null, task.status); // show loading skeleton if unlocked
 
     const { ok, data, message } = await fetchBids(task.id);
 
@@ -149,10 +153,46 @@ async function loadBidsForTask(task) {
         .sort((a, b) => a.bid_amount - b.bid_amount);
 
     renderBidsInPanel(bids, task, handleAcceptBid, handleRejectBid, handleWorkSubmitted, handleWorkCompleted, handleLeaveReview, allReviews);
+
+    // Improvement 6: reveal accepted student contact if task is assigned/in_progress/etc.
+    await loadContactForTask(task, bids);
 }
 
 
 // ─── Event Wiring ─────────────────────────────────────────────────────────────
+
+/**
+ * Resolve the accepted student's contact info and render the contact box.
+ * Only reveals details once a bid has been accepted (status != open).
+ * @param {Task} task
+ * @param {Bid[]} bids
+ */
+async function loadContactForTask(task, bids) {
+    const UNLOCKED = ["assigned", "in_progress", "submitted", "completed"];
+    if (!UNLOCKED.includes(task.status)) {
+        // Show privacy shield — status is still 'open'
+        renderContactBox(undefined, task.status);
+        return;
+    }
+
+    // Find the accepted bid to get the student ID
+    const acceptedBid = bids.find(b => b.status === "accepted");
+    const studentId = acceptedBid?.student_id;
+
+    if (!studentId) {
+        // Assigned but no accepted bid found (edge case)
+        renderContactBox(undefined, task.status);
+        return;
+    }
+
+    // Fetch student user profile
+    const { ok, data } = await fetchUserById(studentId);
+    if (ok && Array.isArray(data) && data.length > 0) {
+        renderContactBox(data[0], task.status);
+    } else {
+        renderContactBox(undefined, task.status);
+    }
+}
 
 function setupEventListeners() {
     // ── Navbar: Post Task button
