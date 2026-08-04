@@ -229,3 +229,64 @@ CREATE POLICY "anon_update_direct_inquiries"
 CREATE POLICY "anon_delete_direct_inquiries"
     ON direct_inquiries FOR DELETE
     USING (true);
+
+
+-- =============================================================
+-- TABLE: reviews (Improvement 5 — Student Rating & Review System)
+-- Allows clients to leave 1-5 star ratings & comments for students
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS reviews (
+    id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    task_id      UUID        NOT NULL REFERENCES tasks (id) ON DELETE CASCADE,
+    reviewer_id  TEXT        NOT NULL,          -- client_id who posted the task & wrote review
+    reviewee_id  TEXT        NOT NULL,          -- student_id who performed the task
+    rating       INT         NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment      TEXT        NOT NULL CHECK (char_length(comment) >= 3),
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Index for fetching all reviews received by a specific student
+CREATE INDEX IF NOT EXISTS idx_reviews_reviewee_id ON reviews (reviewee_id);
+
+-- Index for fetching reviews by task
+CREATE INDEX IF NOT EXISTS idx_reviews_task_id     ON reviews (task_id);
+
+-- ---- reviews RLS ----
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "service_role_all_reviews"
+    ON reviews FOR ALL
+    USING      (auth.role() = 'service_role')
+    WITH CHECK (auth.role() = 'service_role');
+
+CREATE POLICY "anon_read_reviews"
+    ON reviews FOR SELECT
+    USING (true);
+
+CREATE POLICY "anon_insert_reviews"
+    ON reviews FOR INSERT
+    WITH CHECK (true);
+
+CREATE POLICY "anon_update_reviews"
+    ON reviews FOR UPDATE
+    USING (true)
+    WITH CHECK (true);
+
+CREATE POLICY "anon_delete_reviews"
+    ON reviews FOR DELETE
+    USING (true);
+
+
+-- =============================================================
+-- VIEW: user_ratings_summary
+-- Computes average rating and review count per student
+-- =============================================================
+
+CREATE OR REPLACE VIEW user_ratings_summary AS
+SELECT 
+    reviewee_id AS user_id,
+    ROUND(AVG(rating)::numeric, 1) AS avg_rating,
+    COUNT(*) AS total_reviews
+FROM reviews
+GROUP BY reviewee_id;

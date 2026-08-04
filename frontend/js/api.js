@@ -288,3 +288,35 @@ export async function fetchInquiriesForTask(taskId) {
         `${REST}/direct_inquiries?task_id=eq.${encodeURIComponent(taskId)}&select=*&order=created_at.desc`
     );
 }
+
+
+// ─── Reviews & Ratings (Improvement 5 — Student Rating System) ──────────────
+
+/**
+ * Submit a student rating & review.
+ * @param {{ task_id:string, reviewer_id:string, reviewee_id:string, rating:number, comment:string }} payload
+ */
+export function submitReview(payload) {
+    return request(`${REST}/reviews`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+}
+
+/**
+ * Fetch all reviews received by a specific user.
+ * @param {string} userId
+ */
+export function fetchReviewsForUser(userId) {
+    return request(
+        `${REST}/reviews?reviewee_id=eq.${encodeURIComponent(userId)}&select=*&order=created_at.desc`
+    );
+}
+
+/**
+ * Fetch all reviews across the platform.
+ */
+export function fetchAllReviews() {
+    return request(`${REST}/reviews?select=*`);
+}
+

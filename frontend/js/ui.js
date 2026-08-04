@@ -656,6 +656,10 @@ export function renderTaskStepper(task, onSubmitWork, onApproveComplete) {
         const btn = container.querySelector("#btn-action-approve-complete");
         btn?.addEventListener("click", () => onApproveComplete(task));
     }
+    if (onLeaveReview && task.status === "completed") {
+        const btn = container.querySelector("#btn-action-leave-review");
+        btn?.addEventListener("click", () => onLeaveReview(task));
+    }
 }
 
 /**
@@ -700,12 +704,14 @@ export function closeBidsPanel() {
  * @param {Function} onReject     - (bidId, task) => void
  * @param {Function} [onSubmitWork]
  * @param {Function} [onApproveComplete]
+ * @param {Function} [onLeaveReview]
+ * @param {Review[]} [allReviews=[]]
  */
-export function renderBidsInPanel(bids, task, onAccept, onReject, onSubmitWork, onApproveComplete) {
+export function renderBidsInPanel(bids, task, onAccept, onReject, onSubmitWork, onApproveComplete, onLeaveReview, allReviews = []) {
     const list = document.getElementById("bids-panel-list");
     if (!list) return;
 
-    renderTaskStepper(task, onSubmitWork, onApproveComplete);
+    renderTaskStepper(task, onSubmitWork, onApproveComplete, onLeaveReview);
 
     // Loading state
     if (bids === null) {
@@ -744,6 +750,8 @@ export function renderBidsInPanel(bids, task, onAccept, onReject, onSubmitWork, 
         const BID_STATUS_ICON = { pending: "⏳", accepted: "✅", rejected: "❌" };
         const BID_STATUS_CSS  = { pending: "bid-status--pending", accepted: "bid-status--accepted", rejected: "bid-status--rejected" };
 
+        const ratingBadge = renderStudentRatingBadge(bid.student_id, allReviews);
+
         const bidCard = document.createElement("div");
         bidCard.className = `bid-card ${isBest ? "bid-card--best" : ""} bid-status-${bid.status}`;
 
@@ -755,6 +763,7 @@ export function renderBidsInPanel(bids, task, onAccept, onReject, onSubmitWork, 
                     <span class="bid-amount">${formatUGX(bid.bid_amount)}</span>
                     ${isBest ? `<span class="bid-savings-tag">Lowest Bid</span>` : ""}
                 </div>
+                ${ratingBadge}
                 <span class="bid-status-pill ${BID_STATUS_CSS[bid.status] || "bid-status--pending"}">
                     ${BID_STATUS_ICON[bid.status] || "⏳"} ${esc(bid.status)}
                 </span>
@@ -864,4 +873,118 @@ function _reachoutShowView(view) {
     const successEl = document.getElementById("reachout-success");
     if (formEl)    formEl.style.display    = view === "form"    ? "" : "none";
     if (successEl) successEl.classList.toggle("hidden", view !== "success");
+}
+
+
+// ─── Student Rating & Review System (Improvement 5) ─────────────────────────
+
+/**
+ * Render student rating badge (average rating & total reviews count).
+ * @param {string} userId
+ * @param {Review[]} [allReviews=[]]
+ * @returns {string} HTML string
+ */
+export function renderStudentRatingBadge(userId, allReviews = []) {
+    const userReviews = allReviews.filter(r => r.reviewee_id === userId);
+    if (userReviews.length === 0) {
+        return `<span class="student-rating-badge"><span class="star-icon">★</span> New Student</span>`;
+    }
+    const sum = userReviews.reduce((acc, r) => acc + (r.rating || 5), 0);
+    const avg = (sum / userReviews.length).toFixed(1);
+    return `<span class="student-rating-badge" title="${avg} out of 5 stars from ${userReviews.length} reviews"><span class="star-icon">★</span> ${avg} (${userReviews.length})</span>`;
+}
+
+/**
+ * Initialize interactive 5-star rating widget events.
+ */
+export function initStarRatingWidget() {
+    const container = document.getElementById("star-rating-widget");
+    if (!container) return;
+
+    const stars = container.querySelectorAll(".star-btn");
+    const valInput = document.getElementById("review-rating-value");
+    const labelDisplay = document.getElementById("rating-label-display");
+
+    const RATING_LABELS = {
+        1: "1.0 / 5 — Needs Improvement 😞",
+        2: "2.0 / 5 — Fair Effort 😐",
+        3: "3.0 / 5 — Good Service 🙂",
+        4: "4.0 / 5 — Very Good! 😊",
+        5: "5.0 / 5 — Excellent Work! ⭐"
+    };
+
+    function setRating(rating) {
+        if (valInput) valInput.value = rating;
+        stars.forEach((s) => {
+            const r = parseInt(s.dataset.rating, 10);
+            s.classList.toggle("active", r <= rating);
+        });
+        if (labelDisplay) labelDisplay.textContent = RATING_LABELS[rating] || `${rating}.0 / 5`;
+    }
+
+    stars.forEach((star) => {
+        const rating = parseInt(star.dataset.rating, 10);
+
+        star.addEventListener("click", () => setRating(rating));
+
+        star.addEventListener("mouseenter", () => {
+            stars.forEach((s) => {
+                const r = parseInt(s.dataset.rating, 10);
+                s.classList.toggle("hovered", r <= rating);
+            });
+        });
+
+        star.addEventListener("mouseleave", () => {
+            stars.forEach((s) => s.classList.remove("hovered"));
+        });
+    });
+
+    // Default 5 stars
+    setRating(5);
+}
+
+/**
+ * Open the Review modal pre-loaded with target task and student ID.
+ * @param {Task} task
+ * @param {string} revieweeId - student user_id being rated
+ */
+export function openReviewModal(task, revieweeId) {
+    // Populate preview strip
+    const catEl = document.getElementById("review-preview-category");
+    if (catEl) {
+        catEl.textContent = `${catEmoji(task.category)} ${task.category}`;
+        catEl.className   = `category-tag small ${catClass(task.category)}`;
+    }
+    const titleEl = document.getElementById("review-preview-title");
+    if (titleEl) titleEl.textContent = task.title;
+
+    const budgetEl = document.getElementById("review-preview-budget");
+    if (budgetEl) budgetEl.textContent = `Budget: ${formatUGX(task.budget)}`;
+
+    // Set hidden inputs
+    const taskIdEl = document.getElementById("review-task-id");
+    if (taskIdEl) taskIdEl.value = task.id;
+
+    const reviewerIdEl = document.getElementById("review-reviewer-id");
+    if (reviewerIdEl) reviewerIdEl.value = task.client_id || "11111111-1111-1111-1111-111111111111";
+
+    const revieweeIdEl = document.getElementById("review-reviewee-id");
+    if (revieweeIdEl) revieweeIdEl.value = revieweeId || "22222222-2222-2222-2222-222222222222";
+
+    // Reset comment box
+    document.getElementById("create-review-form")?.reset();
+    if (taskIdEl) taskIdEl.value = task.id;
+    if (reviewerIdEl) reviewerIdEl.value = task.client_id || "11111111-1111-1111-1111-111111111111";
+    if (revieweeIdEl) revieweeIdEl.value = revieweeId || "22222222-2222-2222-2222-222222222222";
+
+    initStarRatingWidget();
+    showModal("review-modal");
+}
+
+/**
+ * Close the review modal.
+ */
+export function closeReviewModal() {
+    closeModal("review-modal");
+    document.getElementById("create-review-form")?.reset();
 }

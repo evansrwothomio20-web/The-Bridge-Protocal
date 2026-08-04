@@ -403,6 +403,77 @@
     </div>
 
     <!-- ═══════════════════════════════════════════
+         LEAVE REVIEW & RATING MODAL (Improvement 5)
+         ═══════════════════════════════════════════ -->
+    <div id="review-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
+        <div class="modal-content review-modal-content" role="document">
+
+            <!-- Header -->
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <div class="modal-icon review-modal-icon" aria-hidden="true">⭐</div>
+                    <div>
+                        <h3 id="review-modal-title">Rate & Review Student</h3>
+                        <p id="review-modal-subtitle" class="review-subtitle">Share feedback on completed work</p>
+                    </div>
+                </div>
+                <button id="close-review-btn" class="icon-btn" aria-label="Close review modal">&times;</button>
+            </div>
+
+            <!-- Task preview strip -->
+            <div id="review-task-strip" class="task-preview-strip">
+                <span id="review-preview-category" class="category-tag small"></span>
+                <p id="review-preview-title" class="preview-title"></p>
+                <span id="review-preview-budget" class="preview-budget"></span>
+            </div>
+
+            <!-- Review Form -->
+            <form id="create-review-form" novalidate>
+                <input type="hidden" id="review-task-id">
+                <input type="hidden" id="review-reviewer-id">
+                <input type="hidden" id="review-reviewee-id">
+                <input type="hidden" id="review-rating-value" value="5">
+
+                <!-- Interactive 5-Star Rating Widget -->
+                <div class="form-group star-rating-group">
+                    <label>Select Rating <span class="required" aria-label="required">*</span></label>
+                    <div class="star-rating-widget" id="star-rating-widget">
+                        <button type="button" class="star-btn active" data-rating="1" aria-label="1 star">★</button>
+                        <button type="button" class="star-btn active" data-rating="2" aria-label="2 stars">★</button>
+                        <button type="button" class="star-btn active" data-rating="3" aria-label="3 stars">★</button>
+                        <button type="button" class="star-btn active" data-rating="4" aria-label="4 stars">★</button>
+                        <button type="button" class="star-btn active" data-rating="5" aria-label="5 stars">★</button>
+                    </div>
+                    <span id="rating-label-display" class="rating-label-display">5.0 / 5 — Excellent Work! ⭐</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="review-comment">
+                        Written Review / Feedback <span class="required" aria-label="required">*</span>
+                    </label>
+                    <textarea
+                        id="review-comment"
+                        rows="4"
+                        placeholder="Explain how well the student performed, communication, timeliness, and quality of deliverables..."
+                        required
+                        minlength="3"
+                    ></textarea>
+                    <span class="char-counter" id="review-msg-counter">0 / 500</span>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="cancel-review-btn" class="btn btn-ghost">Cancel</button>
+                    <button type="submit" id="submit-review-btn" class="btn btn-primary btn-review">
+                        <span class="btn-label">Publish Review</span>
+                        <span class="btn-spinner hidden" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
          SCRIPTS (module type for clean imports)
     ═══════════════════════════════════════════ -->
     <script type="module" src="js/app.js"></script>

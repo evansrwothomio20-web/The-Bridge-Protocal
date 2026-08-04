@@ -21,6 +21,8 @@ import {
     rejectBid,
     submitDirectInquiry,
     updateTaskStatus,
+    submitReview,
+    fetchAllReviews,
 } from "./api.js";
 
 import {
@@ -43,6 +45,10 @@ import {
     showReachoutSuccess,
     wireReachoutCharCounter,
     renderTaskStepper,
+    openReviewModal,
+    closeReviewModal,
+    initStarRatingWidget,
+    renderStudentRatingBadge,
 } from "./ui.js";
 
 
@@ -57,13 +63,18 @@ let activeFilter = "All";
 /** @type {"marketplace"|"myTasks"} Active view tab */
 let activeView = "marketplace";
 
+/** @type {Review[]} Cache of reviews for calculating student rating badges */
+let allReviews = [];
+
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", () => {
     wireCharCounter("task-desc", "desc-counter", 500);
+    wireCharCounter("review-comment", "review-msg-counter", 500);
     wireReachoutCharCounter();
     setupEventListeners();
+    loadReviews();
     loadTasks();
 });
 
@@ -108,11 +119,23 @@ async function loadMyTasks() {
 }
 
 /**
+ * Fetch all student reviews from Supabase.
+ */
+async function loadReviews() {
+    const { ok, data } = await fetchAllReviews();
+    if (ok && Array.isArray(data)) {
+        allReviews = data;
+    } else {
+        allReviews = [];
+    }
+}
+
+/**
  * Fetch bids for a task and render them in the bids panel, sorted cheapest-first.
  * @param {Task} task
  */
 async function loadBidsForTask(task) {
-    renderBidsInPanel(null, task, handleAcceptBid, handleRejectBid, handleWorkSubmitted, handleWorkCompleted); // show loading state
+    renderBidsInPanel(null, task, handleAcceptBid, handleRejectBid, handleWorkSubmitted, handleWorkCompleted, handleLeaveReview, allReviews); // show loading state
 
     const { ok, data, message } = await fetchBids(task.id);
 
@@ -125,7 +148,7 @@ async function loadBidsForTask(task) {
     const bids = (Array.isArray(data) ? data : [])
         .sort((a, b) => a.bid_amount - b.bid_amount);
 
-    renderBidsInPanel(bids, task, handleAcceptBid, handleRejectBid, handleWorkSubmitted, handleWorkCompleted);
+    renderBidsInPanel(bids, task, handleAcceptBid, handleRejectBid, handleWorkSubmitted, handleWorkCompleted, handleLeaveReview, allReviews);
 }
 
 
@@ -219,6 +242,7 @@ function setupEventListeners() {
         closeBidModal();
         closeBidsPanel();
         closeReachoutModal();
+        closeReviewModal();
     });
 
     // ── Reach-Out modal — close buttons
@@ -238,6 +262,22 @@ function setupEventListeners() {
     // ── Reach-Out form submission
     document.getElementById("reachout-form")
         ?.addEventListener("submit", handleReachoutSubmit);
+
+    // ── Review modal — close buttons
+    document.getElementById("close-review-btn")
+        ?.addEventListener("click", closeReviewModal);
+    document.getElementById("cancel-review-btn")
+        ?.addEventListener("click", closeReviewModal);
+
+    // ── Review modal — backdrop click
+    document.getElementById("review-modal")
+        ?.addEventListener("click", (e) => {
+            if (e.target === e.currentTarget) closeReviewModal();
+        });
+
+    // ── Review form submission
+    document.getElementById("create-review-form")
+        ?.addEventListener("submit", handleReviewSubmit);
 }
 
 /**
@@ -352,7 +392,7 @@ async function handleReachoutSubmit(e) {
  * @param {Task} task
  */
 function handleViewBids(task) {
-    showBidsPanel(task, handleWorkSubmitted, handleWorkCompleted);
+    showBidsPanel(task, handleWorkSubmitted, handleWorkCompleted, handleLeaveReview);
     loadBidsForTask(task);
 }
 
@@ -394,19 +434,80 @@ async function handleWorkSubmitted(task) {
 
 /**
  * Client approves and completes a submitted task.
- * Transitions status: submitted → completed
+ * Transitions status: submitted → completed, then opens review prompt.
  * @param {Task} task
  */
 async function handleWorkCompleted(task) {
     const { ok, message } = await updateTaskStatus(task.id, "completed");
     if (ok) {
-        toast("success", "Task Completed! 🎉", "Work approved! The task is officially completed.");
+        toast("success", "Task Completed! 🎉", "Work approved! Please leave a review for the student.");
         task.status = "completed";
         await loadBidsForTask(task);
         if (activeView === "marketplace") loadTasks();
         else loadMyTasks();
+        handleLeaveReview(task); // prompt review modal immediately
     } else {
         toast("error", "Approval Failed", message);
+    }
+}
+
+/**
+ * Opens the review modal for a completed task.
+ * Finds the accepted bid to get the student_id being reviewed.
+ * @param {Task} task
+ */
+async function handleLeaveReview(task) {
+    let studentId = "22222222-2222-2222-2222-222222222222"; // default test student
+    const { ok, data } = await fetchBids(task.id);
+    if (ok && Array.isArray(data)) {
+        const accepted = data.find(b => b.status === "accepted");
+        if (accepted?.student_id) {
+            studentId = accepted.student_id;
+        }
+    }
+    openReviewModal(task, studentId);
+}
+
+/**
+ * Handle submission of the review modal form.
+ * @param {SubmitEvent} e
+ */
+async function handleReviewSubmit(e) {
+    e.preventDefault();
+
+    const submitBtn = document.getElementById("submit-review-btn");
+    setButtonLoading(submitBtn, true);
+
+    const task_id     = document.getElementById("review-task-id").value;
+    const reviewer_id = document.getElementById("review-reviewer-id").value;
+    const reviewee_id = document.getElementById("review-reviewee-id").value;
+    const rating      = parseInt(document.getElementById("review-rating-value").value, 10) || 5;
+    const comment     = document.getElementById("review-comment").value.trim();
+
+    if (!comment || comment.length < 3) {
+        toast("error", "Comment Required", "Please write a brief comment describing your experience.");
+        setButtonLoading(submitBtn, false);
+        return;
+    }
+
+    const { ok, message } = await submitReview({
+        task_id,
+        reviewer_id,
+        reviewee_id,
+        rating,
+        comment,
+    });
+
+    setButtonLoading(submitBtn, false);
+
+    if (ok) {
+        closeReviewModal();
+        toast("success", "Review Published! ⭐", "Thank you for rating this student's work.");
+        await loadReviews(); // refresh reviews cache
+        const task = allTasks.find(t => t.id === task_id);
+        if (task) loadBidsForTask(task);
+    } else {
+        toast("error", "Review Failed", message);
     }
 }
 
