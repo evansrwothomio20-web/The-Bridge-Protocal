@@ -265,14 +265,26 @@ function buildTaskCard(task, onBid) {
                 <span class="task-budget">${formatUGX(task.budget)}</span>
                 ${task.created_at ? `<span class="task-date">Posted ${formatDate(task.created_at)}</span>` : ""}
             </div>
-            <button
-                class="btn btn-primary apply-btn"
-                data-task-id="${esc(task.id)}"
-                aria-label="Apply or bid on ${esc(task.title)}"
-                ${task.status !== "open" ? "disabled" : ""}
-            >
-                ${task.status === "open" ? "Apply / Bid" : "Closed"}
-            </button>
+            <div class="card-footer-actions">
+                <button
+                    class="btn btn-primary apply-btn"
+                    data-task-id="${esc(task.id)}"
+                    aria-label="Apply or bid on ${esc(task.title)}"
+                    ${task.status !== "open" ? "disabled" : ""}
+                >
+                    ${task.status === "open" ? "Apply / Bid" : "Closed"}
+                </button>
+                ${task.status === "open" ? `
+                <button
+                    class="btn-reach-ghost reach-btn"
+                    data-task-id="${esc(task.id)}"
+                    aria-label="Reach out directly about ${esc(task.title)}"
+                    title="Send a direct message to the requester"
+                >
+                    💬 Reach Out
+                </button>
+                ` : ""}
+            </div>
         </div>
     `;
 
@@ -280,6 +292,12 @@ function buildTaskCard(task, onBid) {
     const applyBtn = card.querySelector(".apply-btn");
     if (applyBtn && task.status === "open") {
         applyBtn.addEventListener("click", () => onBid && onBid(task));
+    }
+
+    // Attach reach-out button handler
+    const reachBtn = card.querySelector(".reach-btn");
+    if (reachBtn && task.status === "open") {
+        reachBtn.addEventListener("click", () => openReachoutModal(task));
     }
 
     return card;
@@ -632,4 +650,82 @@ export function renderBidsInPanel(bids, task, onAccept, onReject) {
 
         list.appendChild(bidCard);
     });
+}
+
+
+// ─── Reach-Out / Direct Inquiry Modal (Improvement 3) ─────────────────────────
+
+/**
+ * Open the Reach-Out modal pre-populated with the target task's context.
+ * @param {Task} task
+ */
+export function openReachoutModal(task) {
+    // Populate task context strip
+    const catEl = document.getElementById("reachout-preview-category");
+    if (catEl) {
+        catEl.textContent = `${catEmoji(task.category)} ${task.category}`;
+        catEl.className   = `category-tag small ${catClass(task.category)}`;
+    }
+    const titleEl = document.getElementById("reachout-preview-title");
+    if (titleEl) titleEl.textContent = task.title;
+
+    const budgetEl = document.getElementById("reachout-preview-budget");
+    if (budgetEl) budgetEl.textContent = `Budget: ${formatUGX(task.budget)}`;
+
+    // Pre-load hidden fields
+    const taskIdEl = document.getElementById("reachout-task-id");
+    if (taskIdEl) taskIdEl.value = task.id;
+
+    const receiverEl = document.getElementById("reachout-receiver-id");
+    if (receiverEl) receiverEl.value = task.client_id ?? "";
+
+    // Update subtitle
+    const subtitleEl = document.getElementById("reachout-modal-subtitle");
+    if (subtitleEl) subtitleEl.textContent = `Direct offer for: "${task.title}"`;
+
+    // Reset form & hide success state
+    _reachoutShowView("form");
+    document.getElementById("reachout-form")?.reset();
+    // Restore task-id after reset
+    if (taskIdEl) taskIdEl.value = task.id;
+    if (receiverEl) receiverEl.value = task.client_id ?? "";
+
+    // Reset char counter
+    const counter = document.getElementById("reachout-msg-counter");
+    if (counter) counter.textContent = "0 / 600";
+
+    showModal("reachout-modal");
+}
+
+/**
+ * Close the Reach-Out modal and reset it fully.
+ */
+export function closeReachoutModal() {
+    closeModal("reachout-modal");
+    _reachoutShowView("form");
+    document.getElementById("reachout-form")?.reset();
+}
+
+/**
+ * Reveal the animated success state inside the reach-out modal.
+ * Called by app.js after a successful Supabase insert.
+ */
+export function showReachoutSuccess() {
+    _reachoutShowView("success");
+}
+
+/**
+ * Wire the live character counter on the reach-out message textarea.
+ * (Called once from app.js DOMContentLoaded)
+ */
+export function wireReachoutCharCounter() {
+    wireCharCounter("reachout-message", "reachout-msg-counter", 600);
+}
+
+/** @private Toggle between form and success views inside the modal. */
+function _reachoutShowView(view) {
+    const formEl    = document.getElementById("reachout-form");
+    const successEl = document.getElementById("reachout-success");
+    if (formEl)    formEl.style.display    = view === "form"    ? "" : "none";
+    if (successEl) successEl.classList.toggle("hidden", view !== "success");
 }

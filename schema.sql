@@ -162,3 +162,65 @@ CREATE POLICY "anon_update_bids"
 CREATE POLICY "anon_delete_bids"
     ON bids FOR DELETE
     USING (true);
+
+
+-- =============================================================
+-- TABLE: direct_inquiries  (Improvement 3 — Reach-Out)
+-- Allows students / providers to message a task poster directly,
+-- bypassing the formal bid flow for fast, personal outreach.
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS direct_inquiries (
+    id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    task_id      UUID        NOT NULL REFERENCES tasks (id) ON DELETE CASCADE,
+    sender_id    TEXT        NOT NULL,          -- UUID or anon handle of the sender
+    receiver_id  TEXT        NOT NULL,          -- client_id of the task poster
+    subject      TEXT        NOT NULL CHECK (char_length(subject)      >= 5),
+    message      TEXT        NOT NULL CHECK (char_length(message)      >= 20),
+    contact_info TEXT        NOT NULL CHECK (char_length(contact_info) >= 7),
+    status       TEXT        NOT NULL DEFAULT 'unread'
+                             CHECK (status IN ('unread', 'read', 'replied')),
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Fast lookup: all inquiries for a specific task
+CREATE INDEX IF NOT EXISTS idx_direct_inquiries_task_id
+    ON direct_inquiries (task_id);
+
+-- Fast lookup: all inquiries aimed at a specific receiver (client inbox)
+CREATE INDEX IF NOT EXISTS idx_direct_inquiries_receiver_id
+    ON direct_inquiries (receiver_id);
+
+-- Fast lookup: all inquiries sent by a specific student
+CREATE INDEX IF NOT EXISTS idx_direct_inquiries_sender_id
+    ON direct_inquiries (sender_id);
+
+
+-- ---- direct_inquiries RLS ----
+ALTER TABLE direct_inquiries ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "service_role_all_direct_inquiries"
+    ON direct_inquiries FOR ALL
+    USING      (auth.role() = 'service_role')
+    WITH CHECK (auth.role() = 'service_role');
+
+-- Allow anyone to read inquiries (testing — tighten in production)
+CREATE POLICY "anon_read_direct_inquiries"
+    ON direct_inquiries FOR SELECT
+    USING (true);
+
+-- Allow anyone to insert an inquiry (testing — tighten in production)
+CREATE POLICY "anon_insert_direct_inquiries"
+    ON direct_inquiries FOR INSERT
+    WITH CHECK (true);
+
+-- Allow status updates (e.g. mark as read/replied) by anyone
+CREATE POLICY "anon_update_direct_inquiries"
+    ON direct_inquiries FOR UPDATE
+    USING (true)
+    WITH CHECK (true);
+
+-- Allow deletion by anyone (testing — restrict to sender in production)
+CREATE POLICY "anon_delete_direct_inquiries"
+    ON direct_inquiries FOR DELETE
+    USING (true);

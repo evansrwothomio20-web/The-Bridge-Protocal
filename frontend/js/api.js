@@ -19,6 +19,8 @@
  *   GET    /rest/v1/users?select=*                      → all users
  *   GET    /rest/v1/users?id=eq.<id>&select=*           → single user
  *   POST   /rest/v1/users                               → register user
+ *   POST   /rest/v1/direct_inquiries                    → send reach-out inquiry
+ *   GET    /rest/v1/direct_inquiries?task_id=eq.<id>    → inquiries for a task
  */
 
 // ─── Supabase connection ──────────────────────────────────────────────────────
@@ -251,4 +253,38 @@ export async function createUser(payload) {
         method: "POST",
         body:   JSON.stringify(payload),
     });
+}
+
+
+// ─── Direct Inquiries (Improvement 3 — Reach-Out) ────────────────────────────
+
+/**
+ * Submit a direct inquiry to the `direct_inquiries` Supabase table.
+ *
+ * @param {{
+ *   task_id:      string,
+ *   sender_id:    string,
+ *   receiver_id:  string,
+ *   subject:      string,
+ *   message:      string,
+ *   contact_info: string,
+ * }} payload
+ * @returns {Promise<{ok:boolean, data:any, message:string}>}
+ */
+export async function submitDirectInquiry(payload) {
+    return request(`${REST}/direct_inquiries`, {
+        method: "POST",
+        body:   JSON.stringify({ ...payload, status: "unread" }),
+    });
+}
+
+/**
+ * Fetch all inquiries for a specific task (client inbox view).
+ * @param {string} taskId
+ * @returns {Promise<{ok:boolean, data:DirectInquiry[], message:string}>}
+ */
+export async function fetchInquiriesForTask(taskId) {
+    return request(
+        `${REST}/direct_inquiries?task_id=eq.${encodeURIComponent(taskId)}&select=*&order=created_at.desc`
+    );
 }

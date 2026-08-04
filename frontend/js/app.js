@@ -19,6 +19,7 @@ import {
     fetchBids,
     acceptBid,
     rejectBid,
+    submitDirectInquiry,
 } from "./api.js";
 
 import {
@@ -36,6 +37,10 @@ import {
     showBidsPanel,
     closeBidsPanel,
     renderBidsInPanel,
+    openReachoutModal,
+    closeReachoutModal,
+    showReachoutSuccess,
+    wireReachoutCharCounter,
 } from "./ui.js";
 
 
@@ -55,6 +60,7 @@ let activeView = "marketplace";
 
 document.addEventListener("DOMContentLoaded", () => {
     wireCharCounter("task-desc", "desc-counter", 500);
+    wireReachoutCharCounter();
     setupEventListeners();
     loadTasks();
 });
@@ -210,7 +216,26 @@ function setupEventListeners() {
         closePostTaskModal();
         closeBidModal();
         closeBidsPanel();
+        closeReachoutModal();
     });
+
+    // ── Reach-Out modal — close buttons
+    document.getElementById("close-reachout-btn")
+        ?.addEventListener("click", closeReachoutModal);
+    document.getElementById("cancel-reachout-btn")
+        ?.addEventListener("click", closeReachoutModal);
+    document.getElementById("reachout-done-btn")
+        ?.addEventListener("click", closeReachoutModal);
+
+    // ── Reach-Out modal — backdrop click
+    document.getElementById("reachout-modal")
+        ?.addEventListener("click", (e) => {
+            if (e.target === e.currentTarget) closeReachoutModal();
+        });
+
+    // ── Reach-Out form submission
+    document.getElementById("reachout-form")
+        ?.addEventListener("submit", handleReachoutSubmit);
 }
 
 /**
@@ -261,6 +286,63 @@ function syncFilterChips() {
  */
 function handleBidClick(task) {
     openBidModal(task);
+}
+
+
+// ─── Reach-Out / Direct Inquiry ───────────────────────────────────────────────
+
+/**
+ * Handle the Reach-Out form submission — validates, calls Supabase,
+ * then shows the animated success state or an error toast.
+ * @param {SubmitEvent} e
+ */
+async function handleReachoutSubmit(e) {
+    e.preventDefault();
+
+    const submitBtn = document.getElementById("submit-reachout-btn");
+    setButtonLoading(submitBtn, true);
+
+    const task_id      = document.getElementById("reachout-task-id").value;
+    const sender_id    = document.getElementById("reachout-sender-id").value;
+    const receiver_id  = document.getElementById("reachout-receiver-id").value;
+    const subject      = document.getElementById("reachout-subject").value.trim();
+    const message      = document.getElementById("reachout-message").value.trim();
+    const contact_info = document.getElementById("reachout-contact").value.trim();
+
+    // Client-side guards
+    if (!subject || subject.length < 5) {
+        toast("error", "Subject too short", "Please enter a subject of at least 5 characters.");
+        setButtonLoading(submitBtn, false);
+        return;
+    }
+    if (!message || message.length < 20) {
+        toast("error", "Message too short", "Please write at least 20 characters in your message.");
+        setButtonLoading(submitBtn, false);
+        return;
+    }
+    if (!contact_info || contact_info.length < 7) {
+        toast("error", "Contact info required", "Please provide a valid phone or WhatsApp number.");
+        setButtonLoading(submitBtn, false);
+        return;
+    }
+
+    const { ok, message: errMsg } = await submitDirectInquiry({
+        task_id,
+        sender_id,
+        receiver_id,
+        subject,
+        message,
+        contact_info,
+    });
+
+    setButtonLoading(submitBtn, false);
+
+    if (ok) {
+        // Show the animated success view inside the modal
+        showReachoutSuccess();
+    } else {
+        toast("error", "Inquiry Failed", errMsg || "Could not send your message. Please try again.");
+    }
 }
 
 /**

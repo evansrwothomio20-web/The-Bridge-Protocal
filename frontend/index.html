@@ -295,6 +295,109 @@
     </div>
 
     <!-- ═══════════════════════════════════════════
+         REACH-OUT / DIRECT INQUIRY MODAL  (Improvement 3)
+         ═══════════════════════════════════════════ -->
+    <div id="reachout-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="reachout-modal-title">
+        <div class="modal-content reachout-modal-content" role="document">
+
+            <!-- Header -->
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <div class="modal-icon reachout-modal-icon" aria-hidden="true">💬</div>
+                    <div>
+                        <h3 id="reachout-modal-title">Reach Out Directly</h3>
+                        <p id="reachout-modal-subtitle" class="reachout-subtitle">Send a direct offer to the requester</p>
+                    </div>
+                </div>
+                <button id="close-reachout-btn" class="icon-btn" aria-label="Close reach-out modal">&times;</button>
+            </div>
+
+            <!-- Task context strip (pre-loaded by JS) -->
+            <div id="reachout-task-strip" class="task-preview-strip">
+                <span id="reachout-preview-category" class="category-tag small"></span>
+                <p id="reachout-preview-title" class="preview-title"></p>
+                <span id="reachout-preview-budget" class="preview-budget"></span>
+            </div>
+
+            <!-- Info callout -->
+            <div class="reachout-callout" role="note">
+                <span class="reachout-callout-icon" aria-hidden="true">⚡</span>
+                <span>Your message &amp; contact go <strong>directly</strong> to the requester — no middleman, instant connection.</span>
+            </div>
+
+            <!-- Inquiry Form -->
+            <form id="reachout-form" novalidate>
+                <input type="hidden" id="reachout-task-id">
+                <input type="hidden" id="reachout-receiver-id">
+                <!-- Sender ID — replace with authenticated user ID in production -->
+                <input type="hidden" id="reachout-sender-id" value="22222222-2222-2222-2222-222222222222">
+
+                <div class="form-group">
+                    <label for="reachout-subject">
+                        Subject / Pitch Line <span class="required" aria-label="required">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="reachout-subject"
+                        placeholder='e.g., "I can tutor Entrepreneurship — available today at 2PM!"'
+                        required
+                        minlength="5"
+                        maxlength="200"
+                        autocomplete="off"
+                    >
+                    <span class="field-hint">Your opening hook — make it specific and confident.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="reachout-message">
+                        Why You're the Right Fit <span class="required" aria-label="required">*</span>
+                    </label>
+                    <textarea
+                        id="reachout-message"
+                        rows="4"
+                        placeholder="Describe your relevant experience, how you'll approach this task, and your estimated availability. Be specific so the requester can say yes immediately."
+                        required
+                        minlength="20"
+                    ></textarea>
+                    <span class="char-counter" id="reachout-msg-counter">0 / 600</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="reachout-contact">
+                        Contact Info — Phone / WhatsApp <span class="required" aria-label="required">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="reachout-contact"
+                        placeholder="e.g., +256 700 123 456 (WhatsApp preferred)"
+                        required
+                        minlength="7"
+                        maxlength="120"
+                    >
+                    <span class="field-hint">Shared only with the task poster.</span>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="cancel-reachout-btn" class="btn btn-ghost">Cancel</button>
+                    <button type="submit" id="submit-reachout-btn" class="btn btn-reachout">
+                        <span class="btn-label">Send Direct Inquiry</span>
+                        <span class="btn-spinner hidden" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Success State (shown after submission) -->
+            <div id="reachout-success" class="reachout-success hidden" role="status" aria-live="polite">
+                <div class="reachout-success-icon" aria-hidden="true">✅</div>
+                <h4>Message Sent! 🎉</h4>
+                <p>Your message and offer have been sent <strong>directly to the requester</strong>. They'll reach out via your contact info.</p>
+                <button class="btn btn-ghost" id="reachout-done-btn" style="margin-top:14px">Close</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
          SCRIPTS (module type for clean imports)
     ═══════════════════════════════════════════ -->
     <script type="module" src="js/app.js"></script>

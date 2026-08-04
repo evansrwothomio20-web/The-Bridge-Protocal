@@ -1623,3 +1623,180 @@ h1, h2, h3, h4, h5 {
         display: none;
     }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   REACH-OUT / DIRECT INQUIRY — Improvement 3
+   Teal accent layer built on top of the existing design system.
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Teal accent tokens ── */
+:root {
+    --teal:           #0d9488;
+    --teal-hover:     #0f766e;
+    --teal-light:     #2dd4bf;
+    --teal-glow:      rgba(13, 148, 136, 0.35);
+    --teal-bg:        rgba(13, 148, 136, 0.10);
+    --teal-border:    rgba(13, 148, 136, 0.28);
+}
+
+/* ── "Send Direct Inquiry" primary CTA ── */
+.btn-reachout {
+    background:    linear-gradient(135deg, var(--teal), #0891b2);
+    color:         #fff;
+    border:        1px solid transparent;
+    box-shadow:    0 4px 18px var(--teal-glow);
+    font-weight:   700;
+    letter-spacing: 0.01em;
+}
+
+.btn-reachout:hover:not(:disabled) {
+    background:    linear-gradient(135deg, var(--teal-hover), #0e7490);
+    transform:     translateY(-2px);
+    box-shadow:    0 8px 28px var(--teal-glow);
+}
+
+.btn-reachout:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ── "Reach Out" ghost button on task cards ── */
+.btn-reach-ghost {
+    background:    var(--teal-bg);
+    color:         var(--teal-light);
+    border:        1px solid var(--teal-border);
+    font-size:     0.8rem;
+    padding:       6px 12px;
+    border-radius: var(--radius-sm, 8px);
+    font-weight:   600;
+    cursor:        pointer;
+    transition:    background 0.2s, transform 0.15s, box-shadow 0.2s;
+    white-space:   nowrap;
+}
+
+.btn-reach-ghost:hover:not(:disabled) {
+    background:  rgba(13, 148, 136, 0.2);
+    border-color: var(--teal);
+    transform:   translateY(-1px);
+    box-shadow:  0 4px 12px var(--teal-glow);
+}
+
+/* ── Modal width override ── */
+.reachout-modal-content {
+    max-width: 580px;
+}
+
+/* ── Teal modal icon background ── */
+.reachout-modal-icon {
+    background: var(--teal-bg) !important;
+    border: 1px solid var(--teal-border) !important;
+}
+
+/* ── Subtitle below modal title ── */
+.reachout-subtitle {
+    font-size:  0.78rem;
+    color:      var(--text-muted);
+    margin-top: 2px;
+}
+
+/* ── Info callout ── */
+.reachout-callout {
+    display:       flex;
+    align-items:   flex-start;
+    gap:           10px;
+    padding:       10px 14px;
+    background:    var(--teal-bg);
+    border:        1px solid var(--teal-border);
+    border-radius: 8px;
+    font-size:     0.83rem;
+    color:         var(--teal-light);
+    line-height:   1.5;
+    margin-bottom: 20px;
+}
+
+.reachout-callout-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* ── Task preview strip overrides for reach-out modal ── */
+#reachout-task-strip {
+    margin-bottom: 14px;
+}
+
+/* ── Success state ── */
+.reachout-success {
+    display:         flex;
+    flex-direction:  column;
+    align-items:     center;
+    text-align:      center;
+    padding:         32px 20px 20px;
+    gap:             12px;
+}
+
+.reachout-success.hidden {
+    display: none;
+}
+
+.reachout-success-icon {
+    font-size:     3.5rem;
+    animation:     reachout-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes reachout-pop {
+    from { transform: scale(0.4); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+}
+
+.reachout-success h4 {
+    font-size:   1.3rem;
+    font-weight: 700;
+    color:       var(--text-primary);
+}
+
+.reachout-success p {
+    font-size:   0.92rem;
+    color:       var(--text-secondary);
+    max-width:   380px;
+    line-height: 1.6;
+}
+
+/* ── Card footer: two-button row layout ── */
+.card-footer-actions {
+    display:     flex;
+    gap:         8px;
+    align-items: center;
+    flex-wrap:   wrap;
+}
+
+/* ── Inquiry count badge on task cards (client view) ── */
+.inquiry-count-badge {
+    display:       inline-flex;
+    align-items:   center;
+    gap:           4px;
+    padding:       2px 8px;
+    font-size:     0.72rem;
+    font-weight:   700;
+    color:         var(--teal-light);
+    background:    var(--teal-bg);
+    border:        1px solid var(--teal-border);
+    border-radius: 20px;
+    white-space:   nowrap;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+    .reachout-modal-content {
+        max-width: 100%;
+    }
+    .card-footer-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .btn-reach-ghost {
+        text-align: center;
+        justify-content: center;
+    }
+}
