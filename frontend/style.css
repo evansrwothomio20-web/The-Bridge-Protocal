@@ -1800,3 +1800,289 @@ h1, h2, h3, h4, h5 {
         justify-content: center;
     }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   TASK LIFECYCLE & STATUS WORKFLOW — Improvement 4
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Status Pills Color Coding ── */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* Open (Blue) */
+.status--open {
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+.status--open .status-dot {
+    background: #818cf8;
+    box-shadow: 0 0 6px rgba(129, 140, 248, 0.6);
+}
+
+/* Assigned / In Progress (Yellow / Amber) */
+.status--assigned,
+.status--in-progress {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+.status--assigned .status-dot,
+.status--in-progress .status-dot {
+    background: #fbbf24;
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.6);
+    animation: pulseGlow 1.5s infinite;
+}
+
+/* Submitted (Purple / Violet) */
+.status--submitted {
+    background: rgba(139, 92, 246, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(139, 92, 246, 0.35);
+}
+.status--submitted .status-dot {
+    background: #c084fc;
+    box-shadow: 0 0 6px rgba(192, 132, 252, 0.6);
+    animation: pulseGlow 1.2s infinite;
+}
+
+/* Completed (Green / Emerald) */
+.status--completed {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+.status--completed .status-dot {
+    background: #34d399;
+}
+
+/* Cancelled (Red / Rose) */
+.status--cancelled {
+    background: rgba(244, 63, 94, 0.15);
+    color: #fb7185;
+    border: 1px solid rgba(244, 63, 94, 0.35);
+}
+.status--cancelled .status-dot {
+    background: #fb7185;
+}
+
+@keyframes pulseGlow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+
+/* ── Visual Status Progress Stepper Component ── */
+.task-stepper-wrapper {
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 14px 0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.stepper-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.stepper-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.task-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    padding: 4px 0;
+}
+
+.stepper-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+    flex: 1;
+}
+
+.stepper-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #1e293b;
+    border: 2px solid #334155;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    transition: all 0.3s ease;
+}
+
+.stepper-item.is-complete .stepper-circle {
+    background: rgba(16, 185, 129, 0.2);
+    border-color: #10b981;
+    color: #34d399;
+}
+
+.stepper-item.is-active .stepper-circle {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: #f59e0b;
+    color: #fbbf24;
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.4);
+    animation: activeStepPulse 2s infinite;
+}
+
+.stepper-item.is-submitted-active .stepper-circle {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: #8b5cf6;
+    color: #c084fc;
+    box-shadow: 0 0 14px rgba(139, 92, 246, 0.4);
+}
+
+.stepper-item.is-completed-active .stepper-circle {
+    background: rgba(16, 185, 129, 0.25);
+    border-color: #10b981;
+    color: #34d399;
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);
+}
+
+@keyframes activeStepPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+}
+
+.stepper-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 6px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.stepper-item.is-complete .stepper-label,
+.stepper-item.is-active .stepper-label {
+    color: var(--text-primary);
+}
+
+/* Connector bar between steps */
+.stepper-track {
+    position: absolute;
+    top: 20px;
+    left: 12%;
+    right: 12%;
+    height: 3px;
+    background: #334155;
+    z-index: 1;
+}
+
+.stepper-track-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #f59e0b, #8b5cf6, #10b981);
+    transition: width 0.4s ease;
+    border-radius: 2px;
+}
+
+/* Stepper Action Bar (Dynamic Action Buttons) */
+.stepper-actions {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.stepper-note {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Custom Action Buttons for Workflow Transitions */
+.btn-submit-work {
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.83rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
+    transition: all 0.2s ease;
+}
+
+.btn-submit-work:hover:not(:disabled) {
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(139, 92, 246, 0.45);
+}
+
+.btn-approve-complete {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.83rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    transition: all 0.2s ease;
+}
+
+.btn-approve-complete:hover:not(:disabled) {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+}
+
+.cancelled-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(244, 63, 94, 0.15);
+    border: 1px solid rgba(244, 63, 94, 0.3);
+    border-radius: 8px;
+    color: #fb7185;
+    font-size: 0.85rem;
+    font-weight: 600;
+}

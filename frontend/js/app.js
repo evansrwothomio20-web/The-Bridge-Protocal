@@ -20,6 +20,7 @@ import {
     acceptBid,
     rejectBid,
     submitDirectInquiry,
+    updateTaskStatus,
 } from "./api.js";
 
 import {
@@ -41,6 +42,7 @@ import {
     closeReachoutModal,
     showReachoutSuccess,
     wireReachoutCharCounter,
+    renderTaskStepper,
 } from "./ui.js";
 
 
@@ -110,7 +112,7 @@ async function loadMyTasks() {
  * @param {Task} task
  */
 async function loadBidsForTask(task) {
-    renderBidsInPanel(null, task); // show loading state
+    renderBidsInPanel(null, task, handleAcceptBid, handleRejectBid, handleWorkSubmitted, handleWorkCompleted); // show loading state
 
     const { ok, data, message } = await fetchBids(task.id);
 
@@ -123,7 +125,7 @@ async function loadBidsForTask(task) {
     const bids = (Array.isArray(data) ? data : [])
         .sort((a, b) => a.bid_amount - b.bid_amount);
 
-    renderBidsInPanel(bids, task, handleAcceptBid, handleRejectBid);
+    renderBidsInPanel(bids, task, handleAcceptBid, handleRejectBid, handleWorkSubmitted, handleWorkCompleted);
 }
 
 
@@ -350,23 +352,61 @@ async function handleReachoutSubmit(e) {
  * @param {Task} task
  */
 function handleViewBids(task) {
-    showBidsPanel(task);
+    showBidsPanel(task, handleWorkSubmitted, handleWorkCompleted);
     loadBidsForTask(task);
 }
 
 /**
  * Accept a bid — then refresh the bids panel for the same task.
+ * Updates task status to 'assigned' / 'in_progress'.
  * @param {string} bidId
  * @param {Task} task
  */
 async function handleAcceptBid(bidId, task) {
     const { ok, message } = await acceptBid(bidId);
     if (ok) {
-        toast("success", "Bid Accepted! 🎉", "The task is now in progress.");
-        loadBidsForTask(task); // Refresh bids in panel
+        toast("success", "Bid Accepted! 🎉", "Task status updated to Assigned.");
+        task.status = "assigned";
+        await loadBidsForTask(task); // Refresh bids in panel
         loadMyTasks();         // Refresh task list too
     } else {
         toast("error", "Accept Failed", message);
+    }
+}
+
+/**
+ * Student / Freelancer marks assigned work as submitted.
+ * Transitions status: assigned / in_progress → submitted
+ * @param {Task} task
+ */
+async function handleWorkSubmitted(task) {
+    const { ok, message } = await updateTaskStatus(task.id, "submitted");
+    if (ok) {
+        toast("success", "Work Submitted! 📤", "Your work has been submitted for client review.");
+        task.status = "submitted";
+        await loadBidsForTask(task);
+        if (activeView === "marketplace") loadTasks();
+        else loadMyTasks();
+    } else {
+        toast("error", "Submission Failed", message);
+    }
+}
+
+/**
+ * Client approves and completes a submitted task.
+ * Transitions status: submitted → completed
+ * @param {Task} task
+ */
+async function handleWorkCompleted(task) {
+    const { ok, message } = await updateTaskStatus(task.id, "completed");
+    if (ok) {
+        toast("success", "Task Completed! 🎉", "Work approved! The task is officially completed.");
+        task.status = "completed";
+        await loadBidsForTask(task);
+        if (activeView === "marketplace") loadTasks();
+        else loadMyTasks();
+    } else {
+        toast("error", "Approval Failed", message);
     }
 }
 

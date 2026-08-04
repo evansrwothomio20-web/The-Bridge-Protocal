@@ -70,14 +70,18 @@ function catEmoji(category) {
 
 const STATUS_CSS = {
     open:        "status--open",
+    assigned:    "status--assigned",
     in_progress: "status--in-progress",
+    submitted:   "status--submitted",
     completed:   "status--completed",
     cancelled:   "status--cancelled",
 };
 
 const STATUS_LABEL = {
     open:        "Open",
+    assigned:    "Assigned",
     in_progress: "In Progress",
+    submitted:   "Work Submitted",
     completed:   "Completed",
     cancelled:   "Cancelled",
 };
@@ -86,10 +90,10 @@ const STATUS_LABEL = {
  * @param {string} status
  * @returns {string} HTML for the status badge
  */
-function statusBadgeHtml(status) {
+export function statusBadgeHtml(status) {
     const cls   = STATUS_CSS[status]   || "status--open";
     const label = STATUS_LABEL[status] || status;
-    return `<span class="status-badge ${cls}">${esc(label)}</span>`;
+    return `<span class="status-badge ${cls}"><span class="status-dot" aria-hidden="true"></span>${esc(label)}</span>`;
 }
 
 
@@ -528,19 +532,147 @@ export function renderMyTasks(tasks, onViewBids) {
 }
 
 
-// ─── Bids Panel (slide-in drawer) ─────────────────────────────────────────────
+// ─── Bids Panel & Task Detail (slide-in drawer) ─────────────────────────────
+
+/**
+ * Render the multi-stage visual Status Progress Stepper and dynamic action buttons.
+ * @param {Task} task
+ * @param {Function} [onSubmitWork] - Callback when student clicks "Submit Work"
+ * @param {Function} [onApproveComplete] - Callback when client clicks "Approve & Complete"
+ */
+export function renderTaskStepper(task, onSubmitWork, onApproveComplete) {
+    const container = document.getElementById("bids-panel-stepper");
+    if (!container || !task) return;
+
+    if (task.status === "cancelled") {
+        container.innerHTML = `
+            <div class="cancelled-banner">
+                <span>🔴</span>
+                <span>This task has been cancelled.</span>
+            </div>
+        `;
+        return;
+    }
+
+    // Step index mapping (1 to 4)
+    const stepMap = {
+        open: 1,
+        assigned: 2,
+        in_progress: 2,
+        submitted: 3,
+        completed: 4
+    };
+
+    const currentStep = stepMap[task.status] || 1;
+
+    // Track fill percentage
+    const fillPercent = currentStep === 1 ? 0 : currentStep === 2 ? 33 : currentStep === 3 ? 66 : 100;
+
+    const steps = [
+        { num: 1, label: "Posted", key: "open" },
+        { num: 2, label: "In Progress", key: "in_progress" },
+        { num: 3, label: "Submitted", key: "submitted" },
+        { num: 4, label: "Completed", key: "completed" }
+    ];
+
+    const stepsHtml = steps.map((s) => {
+        let stateCls = "";
+        let circleContent = s.num;
+
+        if (s.num < currentStep) {
+            stateCls = "is-complete";
+            circleContent = "✓";
+        } else if (s.num === currentStep) {
+            stateCls = "is-active";
+            if (task.status === "submitted") stateCls += " is-submitted-active";
+            if (task.status === "completed") stateCls += " is-completed-active";
+        } else {
+            stateCls = "is-upcoming";
+        }
+
+        return `
+            <div class="stepper-item ${stateCls}">
+                <div class="stepper-circle">${circleContent}</div>
+                <span class="stepper-label">${s.label}</span>
+            </div>
+        `;
+    }).join("");
+
+    let actionBtnHtml = "";
+    if (task.status === "assigned" || task.status === "in_progress") {
+        actionBtnHtml = `
+            <div class="stepper-actions">
+                <div class="stepper-note">
+                    <span>⚡</span> Work is active & in progress.
+                </div>
+                <button id="btn-action-submit-work" class="btn-submit-work">
+                    📤 Mark Work as Submitted
+                </button>
+            </div>
+        `;
+    } else if (task.status === "submitted") {
+        actionBtnHtml = `
+            <div class="stepper-actions">
+                <div class="stepper-note">
+                    <span>🟣</span> Work submitted for review!
+                </div>
+                <button id="btn-action-approve-complete" class="btn-approve-complete">
+                    ✅ Approve & Mark Completed
+                </button>
+            </div>
+        `;
+    } else if (task.status === "completed") {
+        actionBtnHtml = `
+            <div class="stepper-actions">
+                <div class="stepper-note" style="color:#34d399;">
+                    <span>🎉</span> Task verified & completed successfully.
+                </div>
+            </div>
+        `;
+    }
+
+    container.innerHTML = `
+        <div class="stepper-header">
+            <span class="stepper-title">
+                <span>🔄</span> Progress Workflow
+            </span>
+            ${statusBadgeHtml(task.status)}
+        </div>
+        <div class="task-stepper">
+            <div class="stepper-track">
+                <div class="stepper-track-fill" style="width: ${fillPercent}%;"></div>
+            </div>
+            ${stepsHtml}
+        </div>
+        ${actionBtnHtml}
+    `;
+
+    // Attach event handlers for dynamic action buttons
+    if (onSubmitWork && (task.status === "assigned" || task.status === "in_progress")) {
+        const btn = container.querySelector("#btn-action-submit-work");
+        btn?.addEventListener("click", () => onSubmitWork(task));
+    }
+    if (onApproveComplete && task.status === "submitted") {
+        const btn = container.querySelector("#btn-action-approve-complete");
+        btn?.addEventListener("click", () => onApproveComplete(task));
+    }
+}
 
 /**
  * Open the bids panel overlay for a specific task.
  * @param {Task} task
+ * @param {Function} [onSubmitWork]
+ * @param {Function} [onApproveComplete]
  */
-export function showBidsPanel(task) {
+export function showBidsPanel(task, onSubmitWork, onApproveComplete) {
     const overlay = document.getElementById("bids-panel-overlay");
     const titleEl = document.getElementById("bids-panel-task-title");
     const budgetEl = document.getElementById("bids-panel-task-budget");
 
     if (titleEl)  titleEl.textContent  = task.title;
     if (budgetEl) budgetEl.textContent = `Budget: ${formatUGX(task.budget)}`;
+
+    renderTaskStepper(task, onSubmitWork, onApproveComplete);
 
     if (overlay) {
         overlay.classList.remove("hidden");
@@ -566,10 +698,14 @@ export function closeBidsPanel() {
  * @param {Task} task
  * @param {Function} onAccept     - (bidId, task) => void
  * @param {Function} onReject     - (bidId, task) => void
+ * @param {Function} [onSubmitWork]
+ * @param {Function} [onApproveComplete]
  */
-export function renderBidsInPanel(bids, task, onAccept, onReject) {
+export function renderBidsInPanel(bids, task, onAccept, onReject, onSubmitWork, onApproveComplete) {
     const list = document.getElementById("bids-panel-list");
     if (!list) return;
+
+    renderTaskStepper(task, onSubmitWork, onApproveComplete);
 
     // Loading state
     if (bids === null) {

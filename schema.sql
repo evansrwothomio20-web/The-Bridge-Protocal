@@ -42,9 +42,14 @@ CREATE TABLE IF NOT EXISTS tasks (
     budget      NUMERIC(12, 2) NOT NULL CHECK (budget > 0),
     client_id   UUID        NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     status      TEXT        NOT NULL DEFAULT 'open'
-                            CHECK (status IN ('open', 'in_progress', 'completed', 'cancelled')),
+                            CHECK (status IN ('open', 'assigned', 'in_progress', 'submitted', 'completed', 'cancelled')),
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Migration snippet to update status constraint on an existing database deployment:
+-- ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_status_check;
+-- ALTER TABLE tasks ADD CONSTRAINT tasks_status_check 
+--     CHECK (status IN ('open', 'assigned', 'in_progress', 'submitted', 'completed', 'cancelled'));
 
 -- Index for listing tasks by status (e.g. all open tasks)
 CREATE INDEX IF NOT EXISTS idx_tasks_status    ON tasks (status);
