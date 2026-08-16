@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In — The Bridge Protocol</title>
+    <meta name="description" content="Sign in or create an account on The Bridge Protocol — the campus micro-task marketplace connecting clients and skilled students.">
+    <meta name="theme-color" content="#0a0f1e">
+    <meta name="robots" content="noindex">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* ── Reset & Base ─────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --indigo:    #6366f1;
+            --indigo-d:  #4f46e5;
+            --cyan:      #06b6d4;
+            --emerald:   #10b981;
+            --rose:      #f43f5e;
+            --amber:     #f59e0b;
+            --bg:        #0a0f1e;
+            --bg-card:   rgba(15, 20, 40, 0.75);
+            --border:    rgba(99, 102, 241, 0.2);
+            --border-h:  rgba(99, 102, 241, 0.5);
+            --text:      #e2e8f0;
+            --text-muted:#94a3b8;
+            --input-bg:  rgba(255,255,255,0.05);
+            --input-h:   rgba(255,255,255,0.08);
+            --radius:    14px;
+            --radius-sm: 8px;
+            --shadow:    0 25px 60px rgba(0,0,0,0.6);
+            --font:      'Inter', system-ui, sans-serif;
+            --transition:0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        html, body {
+            height: 100%;
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        /* ── Animated Background ──────────────────────── */
+        .auth-bg {
+            position: fixed; inset: 0;
+            background: radial-gradient(ellipse 80% 80% at 50% -20%, rgba(99,102,241,0.3), transparent),
+                        radial-gradient(ellipse 60% 60% at 80% 80%, rgba(6,182,212,0.2), transparent),
+                        radial-gradient(ellipse 50% 50% at 10% 90%, rgba(79,46,229,0.15), transparent),
+                        var(--bg);
+            z-index: 0;
+        }
+
+        /* Floating orbs */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: float 12s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .orb-1 { width: 400px; height: 400px; background: rgba(99,102,241,0.3); top: -100px; left: -100px; animation-delay: 0s; }
+        .orb-2 { width: 300px; height: 300px; background: rgba(6,182,212,0.25); bottom: -80px; right: -80px; animation-delay: -4s; }
+        .orb-3 { width: 200px; height: 200px; background: rgba(16,185,129,0.2); top: 50%; left: 60%; animation-delay: -8s; }
+
+        /* Grid overlay */
+        .grid-overlay {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background-image:
+                linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            33%       { transform: translateY(-30px) scale(1.05); }
+            66%       { transform: translateY(20px) scale(0.95); }
+        }
+
+        /* ── Page Layout ──────────────────────────────── */
+        .auth-page {
+            position: relative; z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+        }
+
+        /* ── Logo ─────────────────────────────────────── */
+        .auth-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 32px;
+            text-decoration: none;
+        }
+        .auth-logo-icon {
+            width: 44px; height: 44px;
+            background: linear-gradient(135deg, var(--indigo), var(--cyan));
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+        }
+        .auth-logo-icon svg { display: block; }
+        .auth-logo-text h1 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            background: linear-gradient(135deg, #fff, rgba(255,255,255,0.7));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .auth-logo-text span {
+            font-size: 0.65rem;
+            font-weight: 500;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--indigo);
+        }
+
+        /* ── Card ─────────────────────────────────────── */
+        .auth-card {
+            width: 100%; max-width: 440px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 36px 36px 32px;
+            box-shadow: var(--shadow), 0 0 0 1px rgba(255,255,255,0.04) inset;
+            backdrop-filter: blur(24px) saturate(1.5);
+            -webkit-backdrop-filter: blur(24px) saturate(1.5);
+            animation: cardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(24px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0)    scale(1); }
+        }
+
+        /* ── Tab Switcher ─────────────────────────────── */
+        .auth-tabs {
+            display: flex;
+            background: rgba(255,255,255,0.04);
+            border-radius: var(--radius-sm);
+            padding: 4px;
+            gap: 2px;
+            margin-bottom: 28px;
+        }
+        .auth-tab-btn {
+            flex: 1;
+            padding: 9px 6px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: var(--font);
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        .auth-tab-btn.active {
+            background: linear-gradient(135deg, var(--indigo), var(--indigo-d));
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(99,102,241,0.4);
+        }
+        .auth-tab-btn:not(.active):hover {
+            color: var(--text);
+            background: rgba(255,255,255,0.06);
+        }
+
+        /* ── Tab Panels ───────────────────────────────── */
+        .auth-panel { display: none; }
+        .auth-panel.active { display: block; animation: panelIn 0.3s ease both; }
+
+        @keyframes panelIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .auth-panel-heading {
+            font-size: 1.45rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            background: linear-gradient(135deg, #fff 40%, rgba(255,255,255,0.6));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .auth-panel-sub {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+
+        /* ── Form Elements ────────────────────────────── */
+        .form-row { display: flex; gap: 12px; }
+        .form-row .form-group { flex: 1; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            letter-spacing: 0.02em;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 11px 14px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 0.9rem;
+            outline: none;
+            transition: var(--transition);
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        .form-group input::placeholder { color: rgba(148,163,184,0.5); }
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--indigo);
+            background: var(--input-h);
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+        }
+        .form-group input.error,
+        .form-group select.error {
+            border-color: var(--rose);
+            box-shadow: 0 0 0 3px rgba(244,63,94,0.15);
+        }
+        .form-group select option { background: #1a2035; color: var(--text); }
+
+        /* Password field with toggle */
+        .input-password-wrapper { position: relative; }
+        .input-password-wrapper input { padding-right: 44px; }
+        .password-toggle-btn {
+            position: absolute; right: 12px; top: 50%;
+            transform: translateY(-50%);
+            background: none; border: none; cursor: pointer;
+            color: var(--text-muted); padding: 4px;
+            display: flex; align-items: center;
+            transition: color 0.2s;
+        }
+        .password-toggle-btn:hover { color: var(--text); }
+
+        /* Select wrapper */
+        .select-wrapper { position: relative; }
+        .select-wrapper::after {
+            content: '▾';
+            position: absolute; right: 14px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+            font-size: 0.8rem;
+        }
+
+        /* Role cards */
+        .role-selector { display: flex; gap: 10px; margin-bottom: 16px; }
+        .role-card {
+            flex: 1;
+            padding: 12px 10px;
+            background: var(--input-bg);
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            text-align: center;
+            transition: var(--transition);
+        }
+        .role-card:hover { border-color: var(--border-h); background: var(--input-h); }
+        .role-card.selected {
+            border-color: var(--indigo);
+            background: rgba(99,102,241,0.1);
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+        }
+        .role-card-icon { font-size: 1.4rem; margin-bottom: 4px; }
+        .role-card-label { font-size: 0.8rem; font-weight: 600; color: var(--text); }
+        .role-card-sub { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+        input[name="role"] { display: none; }
+
+        /* Password strength bar */
+        .strength-bar { margin-top: 6px; }
+        .strength-track {
+            height: 3px; border-radius: 99px;
+            background: rgba(255,255,255,0.08);
+            overflow: hidden;
+        }
+        .strength-fill {
+            height: 100%; border-radius: 99px;
+            transition: width 0.4s ease, background 0.4s ease;
+            width: 0%;
+        }
+        .strength-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* ── Forgot password link ─────────────────────── */
+        .forgot-link {
+            display: block;
+            text-align: right;
+            font-size: 0.78rem;
+            color: var(--indigo);
+            text-decoration: none;
+            margin-top: -8px;
+            margin-bottom: 20px;
+            transition: color 0.2s;
+        }
+        .forgot-link:hover { color: var(--cyan); text-decoration: underline; }
+
+        /* ── Submit Button ────────────────────────────── */
+        .auth-submit-btn {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, var(--indigo) 0%, var(--indigo-d) 100%);
+            border: none;
+            border-radius: var(--radius-sm);
+            color: #fff;
+            font-family: var(--font);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition);
+            box-shadow: 0 4px 16px rgba(99,102,241,0.4);
+            margin-top: 4px;
+        }
+        .auth-submit-btn::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .auth-submit-btn:hover:not(:disabled)::before { opacity: 1; }
+        .auth-submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(99,102,241,0.5); }
+        .auth-submit-btn:active:not(:disabled) { transform: translateY(0); }
+        .auth-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .auth-submit-btn.loading .btn-text { opacity: 0; }
+        .auth-submit-btn.loading .btn-spinner { opacity: 1; }
+
+        .btn-text, .btn-spinner {
+            transition: opacity 0.2s;
+        }
+        .btn-spinner {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0;
+        }
+        .spinner-ring {
+            width: 20px; height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Alert / Feedback ─────────────────────────── */
+        .auth-alert {
+            border-radius: var(--radius-sm);
+            padding: 11px 14px;
+            font-size: 0.82rem;
+            line-height: 1.5;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            animation: alertIn 0.3s ease both;
+        }
+        @keyframes alertIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .auth-alert.hidden { display: none; }
+        .auth-alert.error {
+            background: rgba(244,63,94,0.12);
+            border: 1px solid rgba(244,63,94,0.3);
+            color: #fda4af;
+        }
+        .auth-alert.success {
+            background: rgba(16,185,129,0.12);
+            border: 1px solid rgba(16,185,129,0.3);
+            color: #6ee7b7;
+        }
+        .auth-alert.info {
+            background: rgba(99,102,241,0.12);
+            border: 1px solid rgba(99,102,241,0.3);
+            color: #a5b4fc;
+        }
+        .auth-alert-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+        /* ── Divider ──────────────────────────────────── */
+        .auth-divider {
+            display: flex; align-items: center;
+            gap: 12px;
+            margin: 20px 0;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+        .auth-divider::before, .auth-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* ── Footer ───────────────────────────────────── */
+        .auth-footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+        .auth-footer a {
+            color: var(--indigo);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .auth-footer a:hover { color: var(--cyan); text-decoration: underline; }
+
+        /* ── Back to app link ─────────────────────────── */
+        .auth-back-link {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            margin-top: 20px;
+            transition: color 0.2s;
+        }
+        .auth-back-link:hover { color: var(--text); }
+        .auth-back-link svg { flex-shrink: 0; }
+
+        /* ── Responsive ───────────────────────────────── */
+        @media (max-width: 480px) {
+            .auth-card { padding: 28px 22px 24px; border-radius: 18px; }
+            .form-row { flex-direction: column; gap: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background -->
+    <div class="auth-bg" aria-hidden="true"></div>
+    <div class="orb orb-1" aria-hidden="true"></div>
+    <div class="orb orb-2" aria-hidden="true"></div>
+    <div class="orb orb-3" aria-hidden="true"></div>
+    <div class="grid-overlay" aria-hidden="true"></div>
+
+    <main class="auth-page" role="main">
+
+        <!-- Logo -->
+        <a href="index.html" class="auth-logo" aria-label="The Bridge Protocol – go to homepage">
+            <div class="auth-logo-icon" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14 2L26 8V20L14 26L2 20V8L14 2Z" stroke="white" stroke-width="1.5" fill="none" opacity="0.8"/>
+                    <path d="M14 8L20 11V17L14 20L8 17V11L14 8Z" fill="white" opacity="0.9"/>
+                </svg>
+            </div>
+            <div class="auth-logo-text">
+                <h1>THE BRIDGE</h1>
+                <span>Protocol</span>
+            </div>
+        </a>
+
+        <!-- Card -->
+        <div class="auth-card" role="region" aria-label="Authentication">
+
+            <!-- Tab Switcher -->
+            <div class="auth-tabs" role="tablist" aria-label="Authentication options">
+                <button id="tab-login"    class="auth-tab-btn active" role="tab" aria-selected="true"  aria-controls="panel-login"    onclick="switchTab('login')">Log In</button>
+                <button id="tab-register" class="auth-tab-btn"        role="tab" aria-selected="false" aria-controls="panel-register" onclick="switchTab('register')">Sign Up</button>
+                <button id="tab-forgot"   class="auth-tab-btn"        role="tab" aria-selected="false" aria-controls="panel-forgot"   onclick="switchTab('forgot')">Reset</button>
+            </div>
+
+            <!-- ══ LOGIN PANEL ══ -->
+            <div id="panel-login" class="auth-panel active" role="tabpanel" aria-labelledby="tab-login">
+                <p class="auth-panel-heading">Welcome back</p>
+                <p class="auth-panel-sub">Sign in to access the marketplace.</p>
+
+                <div id="login-alert" class="auth-alert hidden" role="alert" aria-live="polite">
+                    <span class="auth-alert-icon" aria-hidden="true"></span>
+                    <span class="auth-alert-msg"></span>
+                </div>
+
+                <form id="login-form" novalidate>
+                    <div class="form-group">
+                        <label for="login-email">Email address</label>
+                        <input type="email" id="login-email" name="email"
+                               placeholder="you@example.com"
+                               autocomplete="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <div class="input-password-wrapper">
+                            <input type="password" id="login-password" name="password"
+                                   placeholder="••••••••"
+                                   autocomplete="current-password" required>
+                            <button type="button" class="password-toggle-btn" aria-label="Toggle password visibility"
+                                    onclick="togglePassword('login-password', this)">
+                                <svg id="eye-login" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <a href="#" class="forgot-link" onclick="switchTab('forgot'); return false;">Forgot password?</a>
+
+                    <button type="submit" id="login-submit-btn" class="auth-submit-btn">
+                        <span class="btn-text">Sign In</span>
+                        <span class="btn-spinner" aria-hidden="true"><span class="spinner-ring"></span></span>
+                    </button>
+                </form>
+
+                <div class="auth-divider">or</div>
+
+                <p class="auth-footer">
+                    Don't have an account?
+                    <a href="#" onclick="switchTab('register'); return false;">Create one →</a>
+                </p>
+            </div>
+
+            <!-- ══ REGISTER PANEL ══ -->
+            <div id="panel-register" class="auth-panel" role="tabpanel" aria-labelledby="tab-register">
+                <p class="auth-panel-heading">Join the Protocol</p>
+                <p class="auth-panel-sub">Create your account. It only takes a minute.</p>
+
+                <div id="register-alert" class="auth-alert hidden" role="alert" aria-live="polite">
+                    <span class="auth-alert-icon" aria-hidden="true"></span>
+                    <span class="auth-alert-msg"></span>
+                </div>
+
+                <form id="register-form" novalidate>
+
+                    <!-- Role Selector -->
+                    <div class="form-group">
+                        <label>I am a…</label>
+                        <div class="role-selector" role="radiogroup" aria-label="Select your role">
+                            <div class="role-card selected" id="role-card-client" onclick="selectRole('client')" role="radio" aria-checked="true" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')selectRole('client')">
+                                <div class="role-card-icon" aria-hidden="true">🏢</div>
+                                <div class="role-card-label">Client</div>
+                                <div class="role-card-sub">Post tasks</div>
+                            </div>
+                            <div class="role-card" id="role-card-student" onclick="selectRole('student')" role="radio" aria-checked="false" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')selectRole('student')">
+                                <div class="role-card-icon" aria-hidden="true">🎓</div>
+                                <div class="role-card-label">Student</div>
+                                <div class="role-card-sub">Bid & earn</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="reg-role" name="role" value="client">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="reg-name">Full name *</label>
+                            <input type="text" id="reg-name" name="full_name"
+                                   placeholder="Anne Hillary"
+                                   autocomplete="name" required minlength="2" maxlength="200">
+                        </div>
+                        <div class="form-group">
+                            <label for="reg-phone">Phone (optional)</label>
+                            <input type="tel" id="reg-phone" name="phone"
+                                   placeholder="+256 700 000 000"
+                                   autocomplete="tel">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reg-email">Email address *</label>
+                        <input type="email" id="reg-email" name="email"
+                               placeholder="you@example.com"
+                               autocomplete="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reg-password">Password *</label>
+                        <div class="input-password-wrapper">
+                            <input type="password" id="reg-password" name="password"
+                                   placeholder="Min. 6 characters"
+                                   autocomplete="new-password"
+                                   required minlength="6"
+                                   oninput="updateStrength(this.value)">
+                            <button type="button" class="password-toggle-btn" aria-label="Toggle password visibility"
+                                    onclick="togglePassword('reg-password', this)">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="strength-bar" aria-live="polite">
+                            <div class="strength-track">
+                                <div id="strength-fill" class="strength-fill"></div>
+                            </div>
+                            <div id="strength-label" class="strength-label"></div>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="register-submit-btn" class="auth-submit-btn">
+                        <span class="btn-text">Create Account</span>
+                        <span class="btn-spinner" aria-hidden="true"><span class="spinner-ring"></span></span>
+                    </button>
+                </form>
+
+                <p class="auth-footer" style="margin-top:16px;">
+                    Already have an account?
+                    <a href="#" onclick="switchTab('login'); return false;">Sign in →</a>
+                </p>
+            </div>
+
+            <!-- ══ FORGOT PASSWORD PANEL ══ -->
+            <div id="panel-forgot" class="auth-panel" role="tabpanel" aria-labelledby="tab-forgot">
+                <p class="auth-panel-heading">Reset password</p>
+                <p class="auth-panel-sub">Enter your email and we'll send you a reset link.</p>
+
+                <div id="forgot-alert" class="auth-alert hidden" role="alert" aria-live="polite">
+                    <span class="auth-alert-icon" aria-hidden="true"></span>
+                    <span class="auth-alert-msg"></span>
+                </div>
+
+                <form id="forgot-form" novalidate>
+                    <div class="form-group">
+                        <label for="forgot-email">Email address</label>
+                        <input type="email" id="forgot-email" name="email"
+                               placeholder="you@example.com"
+                               autocomplete="email" required>
+                    </div>
+
+                    <button type="submit" id="forgot-submit-btn" class="auth-submit-btn">
+                        <span class="btn-text">Send Reset Link</span>
+                        <span class="btn-spinner" aria-hidden="true"><span class="spinner-ring"></span></span>
+                    </button>
+                </form>
+
+                <p class="auth-footer" style="margin-top:16px;">
+                    Remembered it?
+                    <a href="#" onclick="switchTab('login'); return false;">Back to Sign In →</a>
+                </p>
+            </div>
+
+        </div><!-- /.auth-card -->
+
+        <a href="index.html" class="auth-back-link">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            Browse marketplace without signing in
+        </a>
+
+    </main>
+
+    <script type="module">
+        import {
+            loginUser,
+            registerUser,
+            forgotPassword,
+            getSession,
+        } from "./js/auth.js";
+
+        // ─── If already logged in, go straight to app ──────────────────────────
+        getSession().then(session => {
+            if (session) window.location.href = "index.html";
+        });
+
+        // ─── Tab switching ──────────────────────────────────────────────────────
+        window.switchTab = function(tab) {
+            ["login", "register", "forgot"].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.toggle("active", t === tab);
+                document.getElementById(`tab-${t}`).setAttribute("aria-selected", t === tab);
+                document.getElementById(`panel-${t}`).classList.toggle("active", t === tab);
+            });
+        };
+
+        // ─── Password visibility toggle ─────────────────────────────────────────
+        window.togglePassword = function(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const isHidden = input.type === "password";
+            input.type = isHidden ? "text" : "password";
+            btn.querySelector("svg").innerHTML = isHidden
+                ? `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>`
+                : `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+        };
+
+        // ─── Role selector ──────────────────────────────────────────────────────
+        window.selectRole = function(role) {
+            document.getElementById("reg-role").value = role;
+            document.getElementById("role-card-client").classList.toggle("selected", role === "client");
+            document.getElementById("role-card-client").setAttribute("aria-checked", role === "client");
+            document.getElementById("role-card-student").classList.toggle("selected", role === "student");
+            document.getElementById("role-card-student").setAttribute("aria-checked", role === "student");
+        };
+
+        // ─── Password strength ──────────────────────────────────────────────────
+        window.updateStrength = function(val) {
+            const fill  = document.getElementById("strength-fill");
+            const label = document.getElementById("strength-label");
+            let score = 0;
+            if (val.length >= 6)  score++;
+            if (val.length >= 10) score++;
+            if (/[A-Z]/.test(val)) score++;
+            if (/[0-9]/.test(val)) score++;
+            if (/[^A-Za-z0-9]/.test(val)) score++;
+
+            const levels = [
+                { pct: "0%",   color: "transparent",     text: "" },
+                { pct: "25%",  color: "#f43f5e",          text: "Weak" },
+                { pct: "50%",  color: "#f59e0b",          text: "Fair" },
+                { pct: "75%",  color: "#06b6d4",          text: "Good" },
+                { pct: "100%", color: "#10b981",          text: "Strong 💪" },
+            ];
+            const lvl = levels[Math.min(score, 4)];
+            fill.style.width     = lvl.pct;
+            fill.style.background = lvl.color;
+            label.textContent    = lvl.text;
+        };
+
+        // ─── Alert helper ───────────────────────────────────────────────────────
+        function showAlert(panelId, type, message) {
+            const el   = document.getElementById(`${panelId}-alert`);
+            const icon = { error: "⚠️", success: "✅", info: "ℹ️" }[type] || "ℹ️";
+            el.className = `auth-alert ${type}`;
+            el.querySelector(".auth-alert-icon").textContent = icon;
+            el.querySelector(".auth-alert-msg").textContent  = message;
+        }
+        function hideAlert(panelId) {
+            const el = document.getElementById(`${panelId}-alert`);
+            el.className = "auth-alert hidden";
+        }
+
+        // ─── Button loading state ───────────────────────────────────────────────
+        function setBtnLoading(btn, loading) {
+            btn.disabled = loading;
+            btn.classList.toggle("loading", loading);
+        }
+
+        // ─── LOGIN form ─────────────────────────────────────────────────────────
+        document.getElementById("login-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            hideAlert("login");
+
+            const email    = document.getElementById("login-email").value.trim();
+            const password = document.getElementById("login-password").value;
+            const btn      = document.getElementById("login-submit-btn");
+
+            if (!email || !password) {
+                showAlert("login", "error", "Please fill in your email and password.");
+                return;
+            }
+
+            setBtnLoading(btn, true);
+            const { ok, message } = await loginUser(email, password);
+            setBtnLoading(btn, false);
+
+            if (ok) {
+                showAlert("login", "success", "Signed in! Redirecting…");
+                setTimeout(() => { window.location.href = "index.html"; }, 800);
+            } else {
+                showAlert("login", "error", message);
+                document.getElementById("login-password").classList.add("error");
+            }
+        });
+
+        document.getElementById("login-password").addEventListener("input", () => {
+            document.getElementById("login-password").classList.remove("error");
+        });
+
+        // ─── REGISTER form ──────────────────────────────────────────────────────
+        document.getElementById("register-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            hideAlert("register");
+
+            const fullName = document.getElementById("reg-name").value.trim();
+            const phone    = document.getElementById("reg-phone").value.trim();
+            const email    = document.getElementById("reg-email").value.trim();
+            const password = document.getElementById("reg-password").value;
+            const role     = document.getElementById("reg-role").value;
+            const btn      = document.getElementById("register-submit-btn");
+
+            if (!fullName || !email || !password) {
+                showAlert("register", "error", "Please fill in all required fields.");
+                return;
+            }
+            if (password.length < 6) {
+                showAlert("register", "error", "Password must be at least 6 characters.");
+                return;
+            }
+
+            setBtnLoading(btn, true);
+            const { ok, message } = await registerUser(email, password, fullName, role, phone || null);
+            setBtnLoading(btn, false);
+
+            if (ok) {
+                showAlert("register", "success", message);
+                // If auto-confirmed, redirect; otherwise stay and show the message
+                setTimeout(async () => {
+                    const { getSession } = await import("./js/auth.js");
+                    const session = await getSession();
+                    if (session) window.location.href = "index.html";
+                }, 1200);
+            } else {
+                showAlert("register", "error", message);
+            }
+        });
+
+        // ─── FORGOT PASSWORD form ───────────────────────────────────────────────
+        document.getElementById("forgot-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            hideAlert("forgot");
+
+            const email = document.getElementById("forgot-email").value.trim();
+            const btn   = document.getElementById("forgot-submit-btn");
+
+            if (!email) {
+                showAlert("forgot", "error", "Please enter your email address.");
+                return;
+            }
+
+            setBtnLoading(btn, true);
+            const { ok, message } = await forgotPassword(email);
+            setBtnLoading(btn, false);
+
+            showAlert("forgot", ok ? "success" : "error", message);
+            if (ok) {
+                btn.disabled = true;
+                btn.querySelector(".btn-text").textContent = "Email Sent ✓";
+            }
+        });
+    </script>
+
+</body>
+</html>
