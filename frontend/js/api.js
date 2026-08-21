@@ -26,7 +26,7 @@
 // ─── Supabase connection ──────────────────────────────────────────────────────
 
 const SUPABASE_URL  = "https://ldrjyiwyevnzoyaymtwb.supabase.co";
-const SUPABASE_ANON = "sb_publishable_wHsooWjaNo8zMUgotgOVZw_zp9xY695";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxkcmp5aXd5ZXZuem95YXltdHdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MTEzMzUsImV4cCI6MjEwMDk4NzMzNX0.Gk4i-SaIqdn_VSuB-LszVkHKAHNv4y1Zwgr5gAi4LoU";
 
 /** Build headers required by every Supabase REST request. */
 function supabaseHeaders(extra = {}) {
