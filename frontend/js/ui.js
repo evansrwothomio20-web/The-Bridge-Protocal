@@ -271,6 +271,14 @@ function buildTaskCard(task, onBid) {
             </div>
             <div class="card-footer-actions">
                 <button
+                    class="btn btn-ghost btn-details"
+                    data-task-id="${esc(task.id)}"
+                    aria-label="View details of ${esc(task.title)}"
+                    title="View full task details"
+                >
+                    🔍 Details
+                </button>
+                <button
                     class="btn btn-primary apply-btn"
                     data-task-id="${esc(task.id)}"
                     aria-label="Apply or bid on ${esc(task.title)}"
@@ -304,11 +312,74 @@ function buildTaskCard(task, onBid) {
         reachBtn.addEventListener("click", () => openReachoutModal(task));
     }
 
+    // Attach details button handler
+    const detailsBtn = card.querySelector(".btn-details");
+    if (detailsBtn) {
+        detailsBtn.addEventListener("click", () => openTaskDetailModal(task));
+    }
+
     return card;
 }
 
 
 // ─── Bid Modal ────────────────────────────────────────────────────────────────
+
+// ─── Task Detail Modal ───────────────────────────────────────────────────────
+
+/**
+ * Open the Task Detail modal, showing full task info.
+ * Bids list and inline bid form are also shown inside this modal.
+ * @param {Task} task
+ * @param {string} [currentStudentId] - Injected by app.js for the bid form
+ */
+export function openTaskDetailModal(task, currentStudentId) {
+    // Meta strip
+    const catEl = document.getElementById("td-category");
+    if (catEl) {
+        catEl.textContent = `${catEmoji(task.category)} ${task.category}`;
+        catEl.className   = `category-tag ${catClass(task.category)}`;
+    }
+    const statusEl = document.getElementById("td-status");
+    if (statusEl) statusEl.outerHTML = statusBadgeHtml(task.status);
+
+    const budgetEl = document.getElementById("td-budget");
+    if (budgetEl) budgetEl.textContent = formatUGX(task.budget);
+
+    const dateEl = document.getElementById("td-date");
+    if (dateEl) dateEl.textContent = task.created_at ? `Posted ${formatDate(task.created_at)}` : "";
+
+    // Title & description
+    const titleEl = document.getElementById("td-task-title");
+    if (titleEl) titleEl.textContent = task.title;
+
+    const descEl = document.getElementById("td-description");
+    if (descEl) descEl.textContent = task.description;
+
+    // Inline bid form hidden fields
+    const taskIdEl = document.getElementById("td-bid-task-id");
+    if (taskIdEl) taskIdEl.value = task.id;
+
+    const studentIdEl = document.getElementById("td-bid-student-id");
+    if (studentIdEl && currentStudentId) studentIdEl.value = currentStudentId;
+
+    // Clear bids list — app.js will populate it
+    const bidsListEl = document.getElementById("td-bids-list");
+    if (bidsListEl) bidsListEl.innerHTML = `<p style="color:var(--text-muted);font-size:0.85rem;">Loading bids…</p>`;
+
+    const bidsCountEl = document.getElementById("td-bids-count");
+    if (bidsCountEl) bidsCountEl.textContent = "";
+
+    showModal("task-detail-modal");
+}
+
+/**
+ * Close the Task Detail modal.
+ */
+export function closeTaskDetailModal() {
+    closeModal("task-detail-modal");
+    document.getElementById("td-bid-form")?.reset();
+}
+
 
 /**
  * Populate and open the bid modal for a specific task.
@@ -539,8 +610,9 @@ export function renderMyTasks(tasks, onViewBids) {
  * @param {Task} task
  * @param {Function} [onSubmitWork] - Callback when student clicks "Submit Work"
  * @param {Function} [onApproveComplete] - Callback when client clicks "Approve & Complete"
+ * @param {Function} [onLeaveReview] - Callback when client clicks "Leave a Review"
  */
-export function renderTaskStepper(task, onSubmitWork, onApproveComplete) {
+export function renderTaskStepper(task, onSubmitWork, onApproveComplete, onLeaveReview) {
     const container = document.getElementById("bids-panel-stepper");
     if (!container || !task) return;
 

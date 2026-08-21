@@ -14,6 +14,7 @@
 import {
     fetchTasks,
     fetchAllTasks,
+    fetchMyTasks,
     createTask,
     placeBid,
     fetchBids,
@@ -24,6 +25,7 @@ import {
     submitReview,
     fetchAllReviews,
     fetchUserById,
+    fetchUser,
 } from "./api.js";
 
 import {
@@ -34,6 +36,8 @@ import {
     closeBidModal,
     openPostTaskModal,
     closePostTaskModal,
+    openTaskDetailModal,
+    closeTaskDetailModal,
     toast,
     setButtonLoading,
     wireCharCounter,
@@ -53,8 +57,10 @@ import {
     renderContactBox,
 } from "./ui.js";
 
+import { getSession, getCurrentUser, logout } from "./auth.js";
 
-// ─── State ────────────────────────────────────────────────────────────────────
+
+// ─── State ───────────────────────────────────────────────────────────────────────────────
 
 /** @type {Task[]} Full list of tasks loaded from the API */
 let allTasks = [];
@@ -68,17 +74,93 @@ let activeView = "marketplace";
 /** @type {Review[]} Cache of reviews for calculating student rating badges */
 let allReviews = [];
 
+/** @type {string} UUID of the currently logged-in user (from Supabase session) */
+let currentUserId = "";
 
-// ─── Bootstrap ────────────────────────────────────────────────────────────────
+/** @type {string} Role of the logged-in user: "client" | "student" */
+let currentUserRole = "";
 
-document.addEventListener("DOMContentLoaded", () => {
+
+// ─── Bootstrap ─────────────────────────────────────────────────────────────────────────────
+
+document.addEventListener("DOMContentLoaded", async () => {
     wireCharCounter("task-desc", "desc-counter", 500);
     wireCharCounter("review-comment", "review-msg-counter", 500);
     wireReachoutCharCounter();
     setupEventListeners();
+    await initSession();  // must run before any data loads
     loadReviews();
     loadTasks();
 });
+
+
+// ─── Session Initialisation ──────────────────────────────────────────────────────────────
+
+/**
+ * Fetch the active Supabase session, resolve the user's public profile,
+ * then inject IDs into all hidden form fields and populate the user chip.
+ * This must be called before any API writes (task creation, bid placement).
+ */
+async function initSession() {
+    const session = await getSession();
+    if (!session) return; // not logged in — requireAuth() will redirect
+
+    currentUserId = session.user.id;
+
+    // Inject into hidden fields for Post Task and Place Bid modals
+    injectUserId(currentUserId);
+
+    // Fetch the public users table row for role + full_name
+    const { ok, data } = await fetchUser(currentUserId);
+    if (ok && data) {
+        currentUserRole = data.role || "";
+        populateUserChip(data.full_name || session.user.email, data.role || "");
+    }
+}
+
+/**
+ * Inject the logged-in user's UUID into every hidden ID field across all forms.
+ * @param {string} userId
+ */
+function injectUserId(userId) {
+    // Post Task form
+    const clientIdEl = document.getElementById("task-client-id");
+    if (clientIdEl) clientIdEl.value = userId;
+
+    // Place Bid modal
+    const bidStudentEl = document.getElementById("bid-student-id");
+    if (bidStudentEl) bidStudentEl.value = userId;
+
+    // Task Detail inline bid form
+    const tdStudentEl = document.getElementById("td-bid-student-id");
+    if (tdStudentEl) tdStudentEl.value = userId;
+
+    // Reach-Out modal sender
+    const senderEl = document.getElementById("reachout-sender-id");
+    if (senderEl) senderEl.value = userId;
+}
+
+/**
+ * Populate the user chip in the navbar with name and role.
+ * @param {string} name
+ * @param {string} role
+ */
+function populateUserChip(name, role) {
+    const chip = document.getElementById("user-chip");
+    if (chip) chip.classList.remove("hidden");
+
+    const avatarEl = document.getElementById("user-avatar");
+    if (avatarEl) {
+        const initials = name.trim().split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+        avatarEl.textContent = initials || "?";
+    }
+
+    const nameEl = document.getElementById("user-chip-name");
+    if (nameEl) nameEl.textContent = name;
+
+    const roleEl = document.getElementById("user-chip-role");
+    if (roleEl) roleEl.textContent = role ? (role === "client" ? "🏢 Client" : "🎓 Student") : "";
+}
 
 
 // ─── Data Loading ─────────────────────────────────────────────────────────────
@@ -104,11 +186,17 @@ async function loadTasks() {
 
 /**
  * Fetch ALL tasks (any status) and render the My Tasks dashboard.
+ * Filtered by the current logged-in user's ID so only their tasks appear.
  */
 async function loadMyTasks() {
     showSkeletons(6);
 
-    const { ok, data, message } = await fetchAllTasks();
+    if (!currentUserId) {
+        showError("You must be logged in to view your tasks.");
+        return;
+    }
+
+    const { ok, data, message } = await fetchMyTasks(currentUserId);
 
     if (!ok) {
         showError(message);
@@ -199,6 +287,10 @@ function setupEventListeners() {
     document.getElementById("open-post-task-btn")
         ?.addEventListener("click", openPostTaskModal);
 
+    // ── Navbar: Logout button
+    document.getElementById("logout-btn")
+        ?.addEventListener("click", logout);
+
     // ── Navbar: My Tasks tab
     document.getElementById("my-tasks-tab-btn")
         ?.addEventListener("click", () => switchView("myTasks"));
@@ -275,11 +367,28 @@ function setupEventListeners() {
     document.getElementById("place-bid-form")
         ?.addEventListener("submit", handlePlaceBid);
 
+    // ── Task Detail modal — close buttons
+    document.getElementById("close-task-detail-btn")
+        ?.addEventListener("click", closeTaskDetailModal);
+    document.getElementById("cancel-td-bid-btn")
+        ?.addEventListener("click", closeTaskDetailModal);
+
+    // ── Task Detail modal — backdrop click
+    document.getElementById("task-detail-modal")
+        ?.addEventListener("click", (e) => {
+            if (e.target === e.currentTarget) closeTaskDetailModal();
+        });
+
+    // ── Task Detail inline bid form submission
+    document.getElementById("td-bid-form")
+        ?.addEventListener("submit", handlePlaceBidFromDetail);
+
     // ── Global: close modals on Escape key
     document.addEventListener("keydown", (e) => {
         if (e.key !== "Escape") return;
         closePostTaskModal();
         closeBidModal();
+        closeTaskDetailModal();
         closeBidsPanel();
         closeReachoutModal();
         closeReviewModal();
@@ -438,17 +547,17 @@ function handleViewBids(task) {
 
 /**
  * Accept a bid — then refresh the bids panel for the same task.
- * Updates task status to 'assigned' / 'in_progress'.
+ * Updates task status to 'in_progress'.
  * @param {string} bidId
  * @param {Task} task
  */
 async function handleAcceptBid(bidId, task) {
     const { ok, message } = await acceptBid(bidId);
     if (ok) {
-        toast("success", "Bid Accepted! 🎉", "Task status updated to Assigned.");
-        task.status = "assigned";
+        toast("success", "Bid Accepted! 🎉", "Task is now in progress.");
+        task.status = "in_progress";
         await loadBidsForTask(task); // Refresh bids in panel
-        loadMyTasks();         // Refresh task list too
+        loadMyTasks();               // Refresh task list too
     } else {
         toast("error", "Accept Failed", message);
     }
@@ -652,6 +761,57 @@ async function handlePlaceBid(e) {
 
     if (ok) {
         closeBidModal();
+        toast("success", "Bid Submitted! ✅", "Your proposal has been sent to the client.");
+    } else {
+        toast("error", "Bid Failed", message);
+    }
+}
+
+/**
+ * Handle the inline "Submit Bid" form inside the Task Detail modal (#td-bid-form).
+ * Reads from td-prefixed fields and closes the detail modal on success.
+ * @param {SubmitEvent} e
+ */
+async function handlePlaceBidFromDetail(e) {
+    e.preventDefault();
+
+    const submitBtn = document.getElementById("submit-td-bid-btn");
+    setButtonLoading(submitBtn, true);
+
+    const task_id    = document.getElementById("td-bid-task-id").value;
+    const student_id = document.getElementById("td-bid-student-id").value;
+    const bid_amount = parseFloat(document.getElementById("td-bid-amount").value);
+    const proposal   = document.getElementById("td-bid-proposal").value.trim();
+
+    if (!task_id || !student_id || !bid_amount || !proposal) {
+        toast("error", "Missing Fields", "Please fill in all required fields.");
+        setButtonLoading(submitBtn, false);
+        return;
+    }
+
+    if (proposal.length < 5) {
+        toast("error", "Proposal Too Short", "Your proposal must be at least 5 characters.");
+        setButtonLoading(submitBtn, false);
+        return;
+    }
+
+    if (bid_amount <= 0) {
+        toast("error", "Invalid Amount", "Bid amount must be greater than 0.");
+        setButtonLoading(submitBtn, false);
+        return;
+    }
+
+    const { ok, message } = await placeBid({
+        task_id,
+        student_id,
+        bid_amount,
+        proposal,
+    });
+
+    setButtonLoading(submitBtn, false);
+
+    if (ok) {
+        closeTaskDetailModal();
         toast("success", "Bid Submitted! ✅", "Your proposal has been sent to the client.");
     } else {
         toast("error", "Bid Failed", message);

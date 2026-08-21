@@ -108,6 +108,17 @@ export async function fetchAllTasks() {
 }
 
 /**
+ * Fetch only the tasks posted by a specific client (My Tasks dashboard).
+ * @param {string} clientId  - The logged-in user's UUID
+ * @returns {Promise<{ok:boolean, data:Task[], message:string}>}
+ */
+export async function fetchMyTasks(clientId) {
+    return request(
+        `${REST}/tasks?client_id=eq.${encodeURIComponent(clientId)}&select=*&order=created_at.desc`
+    );
+}
+
+/**
  * Fetch a single task by ID.
  * @param {string} taskId
  */
