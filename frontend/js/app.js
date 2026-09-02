@@ -56,6 +56,7 @@ import {
     initStarRatingWidget,
     renderStudentRatingBadge,
     renderContactBox,
+    renderBidExplorer,
 } from "./ui.js";
 
 import { getSession, getCurrentUser, logout } from "./auth.js";
@@ -66,10 +67,13 @@ import { getSession, getCurrentUser, logout } from "./auth.js";
 /** @type {Task[]} Full list of tasks loaded from the API */
 let allTasks = [];
 
-/** @type {string} Currently selected category filter */
+/** @type {string} Currently selected category filter (marketplace) */
 let activeFilter = "All";
 
-/** @type {"marketplace"|"myTasks"} Active view tab */
+/** @type {string} Currently selected category filter (bid explorer) */
+let activeExplorerFilter = "All";
+
+/** @type {"marketplace"|"myTasks"|"bidExplorer"} Active view tab */
 let activeView = "marketplace";
 
 /** @type {Review[]} Cache of reviews for calculating student rating badges */
@@ -256,6 +260,40 @@ async function loadReviews() {
 }
 
 /**
+ * Fetch all open tasks + all bids and render the Bid Explorer accordion.
+ * Results are cached in _explorerBids so category-filter switches are instant.
+ */
+async function loadBidExplorer() {
+    // Show loading state
+    renderBidExplorer(null, [], allReviews, handleExplorerReachOut, activeExplorerFilter);
+
+    // Fetch tasks and bids in parallel
+    const [tasksRes, bidsRes] = await Promise.all([fetchTasks(), fetchBids()]);
+
+    if (!tasksRes.ok) {
+        toast("error", "Could not load tasks", tasksRes.message);
+        return;
+    }
+
+    const tasks = Array.isArray(tasksRes.data) ? tasksRes.data : [];
+    _explorerBids = Array.isArray(bidsRes.data) ? bidsRes.data : [];
+
+    renderBidExplorer(tasks, _explorerBids, allReviews, handleExplorerReachOut, activeExplorerFilter);
+}
+
+/**
+ * Handle "Reach Out" click in the Bid Explorer.
+ * Opens the Reach-Out modal pre-loaded with the task context so the user
+ * can send a direct inquiry to the task poster.
+ * @param {Task} task
+ */
+function handleExplorerReachOut(task) {
+    openReachoutModal(task);
+}
+
+
+
+/**
  * Fetch bids for a task and render them in the bids panel, sorted cheapest-first.
  * After fetching, also resolves the accepted student contact info (Improvement 6).
  * @param {Task} task
@@ -333,6 +371,24 @@ function setupEventListeners() {
     // ── Navbar: Marketplace tab
     document.getElementById("marketplace-tab-btn")
         ?.addEventListener("click", () => switchView("marketplace"));
+
+    // ── Navbar: Bid Explorer tab
+    document.getElementById("bid-explorer-tab-btn")
+        ?.addEventListener("click", () => switchView("bidExplorer"));
+
+    // ── Bid Explorer: Refresh button
+    document.getElementById("refresh-btn-explorer")
+        ?.addEventListener("click", () => loadBidExplorer());
+
+    // ── Bid Explorer: Category filter chips
+    document.getElementById("explorer-filter-bar")
+        ?.addEventListener("click", (e) => {
+            const chip = e.target.closest(".filter-chip");
+            if (!chip) return;
+            activeExplorerFilter = chip.dataset.excat || "All";
+            syncExplorerFilterChips();
+            renderBidExplorer(allTasks, _explorerBids, allReviews, handleExplorerReachOut, activeExplorerFilter);
+        });
 
     // ── Refresh button (Marketplace)
     document.getElementById("refresh-btn")
@@ -465,43 +521,66 @@ function setupEventListeners() {
 }
 
 /**
- * Switch between "marketplace" and "myTasks" views.
- * @param {"marketplace"|"myTasks"} view
+ * Switch between "marketplace", "myTasks", and "bidExplorer" views.
+ * @param {"marketplace"|"myTasks"|"bidExplorer"} view
  */
 function switchView(view) {
     activeView = view;
 
-    const marketSection = document.getElementById("tasks-section");
-    const myTasksSection = document.getElementById("my-tasks-section");
-    const marketBtn = document.getElementById("marketplace-tab-btn");
-    const myTasksBtn = document.getElementById("my-tasks-tab-btn");
-    const postBtn = document.getElementById("open-post-task-btn");
+    const marketSection   = document.getElementById("tasks-section");
+    const myTasksSection  = document.getElementById("my-tasks-section");
+    const explorerSection = document.getElementById("bid-explorer-section");
+    const marketBtn       = document.getElementById("marketplace-tab-btn");
+    const myTasksBtn      = document.getElementById("my-tasks-tab-btn");
+    const explorerBtn     = document.getElementById("bid-explorer-tab-btn");
+    const postBtn         = document.getElementById("open-post-task-btn");
+
+    // Hide all sections
+    marketSection?.classList.add("hidden");
+    myTasksSection?.classList.add("hidden");
+    explorerSection?.classList.add("hidden");
+    marketBtn?.classList.remove("active");
+    myTasksBtn?.classList.remove("active");
+    explorerBtn?.classList.remove("active");
 
     if (view === "marketplace") {
         marketSection?.classList.remove("hidden");
-        myTasksSection?.classList.add("hidden");
         marketBtn?.classList.add("active");
-        myTasksBtn?.classList.remove("active");
         postBtn?.classList.remove("hidden");
         loadTasks();
-    } else {
-        marketSection?.classList.add("hidden");
+    } else if (view === "myTasks") {
         myTasksSection?.classList.remove("hidden");
-        marketBtn?.classList.remove("active");
         myTasksBtn?.classList.add("active");
         postBtn?.classList.add("hidden");
         loadMyTasks();
+    } else {
+        explorerSection?.classList.remove("hidden");
+        explorerBtn?.classList.add("active");
+        postBtn?.classList.add("hidden");
+        loadBidExplorer();
     }
 }
 
 /**
- * Sync the active-class on filter chips to match `activeFilter`.
+ * Sync the active-class on marketplace filter chips to match `activeFilter`.
  */
 function syncFilterChips() {
-    document.querySelectorAll(".filter-chip").forEach((chip) => {
+    document.querySelectorAll("#filter-bar .filter-chip").forEach((chip) => {
         chip.classList.toggle("active", chip.dataset.category === activeFilter);
     });
 }
+
+/**
+ * Sync the active-class on explorer filter chips to match `activeExplorerFilter`.
+ */
+function syncExplorerFilterChips() {
+    document.querySelectorAll("#explorer-filter-bar .filter-chip").forEach((chip) => {
+        chip.classList.toggle("active", chip.dataset.excat === activeExplorerFilter);
+    });
+}
+
+/** Cache of bids fetched for the Bid Explorer (avoids re-fetching on category switch) */
+let _explorerBids = [];
 
 
 // ─── Handlers ─────────────────────────────────────────────────────────────────

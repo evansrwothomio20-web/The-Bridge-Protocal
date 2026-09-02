@@ -2502,3 +2502,425 @@ h1, h2, h3, h4, h5 {
     color: var(--text-muted);
     line-height: 1;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   BID EXPLORER — Category-Grouped Accordion
+════════════════════════════════════════════════════════════════ */
+
+.bid-explorer-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+/* ─── Category accordion group ───────────────────────────────── */
+.explorer-cat-group {
+    border: 1.5px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+}
+
+.explorer-cat-group:hover {
+    box-shadow: var(--shadow-card-hover);
+}
+
+.explorer-cat-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-card-hover) 100%);
+    border: none;
+    border-bottom: 1.5px solid var(--border-subtle);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.18s;
+}
+
+.explorer-cat-header:hover {
+    background: var(--bg-card-hover);
+}
+
+.excat-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.excat-emoji {
+    font-size: 1.3rem;
+    line-height: 1;
+}
+
+.excat-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    letter-spacing: -0.01em;
+}
+
+.excat-counts {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.excat-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: var(--radius-full);
+    letter-spacing: 0.01em;
+}
+
+.excat-badge--tasks {
+    background: rgba(15, 76, 58, 0.1);
+    color: var(--btn-primary);
+}
+
+.excat-badge--bids {
+    background: rgba(74, 46, 128, 0.1);
+    color: var(--violet);
+}
+
+.excat-chevron {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+.explorer-cat-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+    max-height: 9999px;
+    transition: max-height 0.35s ease, opacity 0.25s ease;
+    opacity: 1;
+}
+
+.explorer-cat-body.is-collapsed {
+    max-height: 0;
+    opacity: 0;
+}
+
+/* ─── Task row inside a category ─────────────────────────────── */
+.explorer-task-row {
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.explorer-task-row:last-child {
+    border-bottom: none;
+}
+
+.explorer-task-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 20px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+}
+
+.explorer-task-header:hover {
+    background: var(--bg-card-hover);
+}
+
+.explorer-task-header.no-bids {
+    cursor: default;
+    opacity: 0.7;
+}
+
+.extask-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.extask-chevron {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    margin-top: 3px;
+    transition: transform 0.2s;
+    min-width: 14px;
+}
+
+.extask-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.extask-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.extask-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.extask-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.extask-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.extask-bid-pill {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    white-space: nowrap;
+}
+
+.extask-bid-pill.has-bids {
+    background: rgba(74, 46, 128, 0.1);
+    color: var(--violet);
+}
+
+.extask-bid-pill.no-bids-pill {
+    background: var(--bg-card-hover);
+    color: var(--text-muted);
+}
+
+/* ─── Bids body (expandable) ─────────────────────────────────── */
+.explorer-bids-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-height: 9999px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.2s ease;
+    opacity: 1;
+    background: rgba(251, 249, 245, 0.6);
+    border-top: 1px solid var(--border-subtle);
+}
+
+.explorer-bids-body.is-collapsed {
+    max-height: 0;
+    opacity: 0;
+    border-top: none;
+}
+
+/* ─── Individual bid item ─────────────────────────────────────── */
+.explorer-bid-item {
+    padding: 14px 20px 14px 32px;
+    border-bottom: 1px solid var(--border-subtle);
+    position: relative;
+    transition: background 0.15s;
+}
+
+.explorer-bid-item:last-child {
+    border-bottom: none;
+}
+
+.explorer-bid-item:hover {
+    background: rgba(15, 76, 58, 0.03);
+}
+
+.explorer-bid-item--best {
+    background: linear-gradient(135deg, rgba(15,76,58,0.04), rgba(27,99,72,0.02));
+    border-left: 3px solid var(--btn-primary);
+}
+
+.explorer-best-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--btn-primary);
+    background: rgba(15, 76, 58, 0.1);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.explorer-bid-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.explorer-bid-left {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.explorer-bid-rank {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.explorer-bid-details {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.explorer-bid-amount {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--accent-budget);
+}
+
+.explorer-bid-proposal {
+    font-size: 0.83rem;
+    color: var(--text-body);
+    line-height: 1.5;
+    margin: 0;
+    white-space: pre-line;
+    word-break: break-word;
+}
+
+.explorer-bid-date {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.explorer-bid-actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-start;
+}
+
+/* ─── Reach Out button ───────────────────────────────────────── */
+.btn-explorer-reachout {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--radius-full);
+    border: 1.5px solid var(--btn-primary);
+    background: transparent;
+    color: var(--btn-primary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    font-family: inherit;
+}
+
+.btn-explorer-reachout:hover {
+    background: var(--btn-primary);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(15, 76, 58, 0.3);
+    transform: translateY(-1px);
+}
+
+.btn-explorer-reachout:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+/* ─── No bids message ────────────────────────────────────────── */
+.explorer-no-bids-msg {
+    padding: 12px 20px 12px 44px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* ─── Loading skeletons ──────────────────────────────────────── */
+.explorer-loading {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.explorer-skeleton-group {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1.5px solid var(--border-subtle);
+}
+
+.explorer-skeleton-header {
+    height: 54px;
+    background: linear-gradient(90deg, var(--bg-card-hover) 25%, #ece8e0 50%, var(--bg-card-hover) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s infinite;
+}
+
+.explorer-skeleton-row {
+    height: 44px;
+    margin: 0;
+    background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card-hover) 50%, var(--bg-card) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s infinite;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.explorer-skeleton-row.short {
+    height: 36px;
+    opacity: 0.7;
+}
+
+/* ─── Explorer filter bar spacing ────────────────────────────── */
+.explorer-filter-bar {
+    margin-bottom: 4px;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .explorer-bid-row {
+        flex-direction: column;
+    }
+    .explorer-bid-actions {
+        width: 100%;
+    }
+    .btn-explorer-reachout {
+        width: 100%;
+        justify-content: center;
+    }
+    .extask-right {
+        flex-direction: column;
+        align-items: flex-end;
+    }
+    .explorer-task-header {
+        flex-wrap: wrap;
+    }
+}

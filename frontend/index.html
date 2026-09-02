@@ -81,6 +81,9 @@
             <button id="my-tasks-tab-btn" class="nav-tab" aria-label="View my posted tasks and bids">
                 <span aria-hidden="true">📋</span> My Tasks
             </button>
+            <button id="bid-explorer-tab-btn" class="nav-tab" aria-label="Explore all bids by category">
+                <span aria-hidden="true">🔍</span> Bid Explorer
+            </button>
         </nav>
 
         <nav class="nav-right" role="navigation" aria-label="Primary navigation">
@@ -191,6 +194,37 @@
             <!-- My Tasks List -->
             <div id="my-tasks-container" class="my-tasks-list" role="list" aria-label="My posted tasks">
                 <!-- Populated by ui.js -->
+            </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════
+             BID EXPLORER — CATEGORY BROWSER
+        ═══════════════════════════════════════ -->
+        <section id="bid-explorer-section" class="tasks-section hidden" aria-labelledby="bid-explorer-heading">
+            <div class="section-toolbar">
+                <div class="section-title-group">
+                    <h3 id="bid-explorer-heading" class="section-title">🔍 Bid Explorer</h3>
+                    <p class="section-subtitle">Browse all proposals submitted across every category. Click <strong>Reach Out</strong> to contact the best bidder directly.</p>
+                </div>
+                <button id="refresh-btn-explorer" class="btn btn-ghost" aria-label="Refresh bid explorer">
+                    <span class="refresh-icon" aria-hidden="true">↻</span>
+                    Refresh
+                </button>
+            </div>
+
+            <!-- Category quick-jump tabs -->
+            <div id="explorer-filter-bar" class="filter-bar explorer-filter-bar" role="group" aria-label="Filter explorer by category">
+                <button class="filter-chip active" data-excat="All">All</button>
+                <button class="filter-chip" data-excat="Tech Repair">🔧 Tech Repair</button>
+                <button class="filter-chip" data-excat="Tutoring">📚 Tutoring</button>
+                <button class="filter-chip" data-excat="Graphic Design">🎨 Graphic Design</button>
+                <button class="filter-chip" data-excat="Campus Logistics">🏫 Campus Logistics</button>
+                <button class="filter-chip" data-excat="Other">⚙️ Other</button>
+            </div>
+
+            <!-- Explorer accordion container -->
+            <div id="bid-explorer-container" class="bid-explorer-container" role="list" aria-label="Tasks and bids by category">
+                <!-- Populated by ui.js renderBidExplorer() -->
             </div>
         </section>
 

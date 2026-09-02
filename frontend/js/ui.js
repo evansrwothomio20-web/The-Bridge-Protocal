@@ -1192,3 +1192,208 @@ export function renderContactBox(user, taskStatus) {
         `}
     `;
 }
+
+// ─── Bid Explorer — Category-Grouped Accordion ──────────────────────────────────────────
+
+const EXPLORER_CATEGORIES = [
+    "Tech Repair",
+    "Tutoring",
+    "Graphic Design",
+    "Campus Logistics",
+    "Other",
+];
+
+/**
+ * Render the Bid Explorer.
+ * @param {Task[]}   tasks
+ * @param {Bid[]}    bids
+ * @param {Review[]} allReviews
+ * @param {Function} onReachOut - (task) => void
+ * @param {string}   catFilter
+ */
+export function renderBidExplorer(tasks, bids, allReviews, onReachOut, catFilter = "All") {
+    const container = document.getElementById("bid-explorer-container");
+    if (!container) return;
+
+    if (tasks === null) {
+        container.innerHTML = `
+            <div class="explorer-loading">
+                <div class="explorer-skeleton-group">
+                    <div class="explorer-skeleton-header"></div>
+                    <div class="explorer-skeleton-row"></div>
+                    <div class="explorer-skeleton-row short"></div>
+                </div>
+                <div class="explorer-skeleton-group">
+                    <div class="explorer-skeleton-header"></div>
+                    <div class="explorer-skeleton-row"></div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    const bidsByTask = {};
+    (Array.isArray(bids) ? bids : []).forEach((b) => {
+        if (!bidsByTask[b.task_id]) bidsByTask[b.task_id] = [];
+        bidsByTask[b.task_id].push(b);
+    });
+    Object.values(bidsByTask).forEach((arr) => arr.sort((a, b) => a.bid_amount - b.bid_amount));
+
+    const categoriesToShow = catFilter === "All"
+        ? EXPLORER_CATEGORIES
+        : EXPLORER_CATEGORIES.filter((c) => c === catFilter);
+
+    container.innerHTML = "";
+    let renderedAny = false;
+
+    categoriesToShow.forEach((cat) => {
+        const catTasks = (Array.isArray(tasks) ? tasks : []).filter((t) => t.category === cat);
+        if (catTasks.length === 0) return;
+        renderedAny = true;
+
+        const totalBids = catTasks.reduce((sum, t) => sum + (bidsByTask[t.id]?.length || 0), 0);
+
+        const group = document.createElement("div");
+        group.className = "explorer-cat-group";
+        group.setAttribute("role", "listitem");
+
+        const catId = CSS.escape(cat);
+        const taskCount = catTasks.length + " task" + (catTasks.length !== 1 ? "s" : "");
+        const bidCount  = totalBids + " bid"  + (totalBids  !== 1 ? "s" : "");
+
+        group.innerHTML = "<button class=\"explorer-cat-header\" aria-expanded=\"true\"" +
+            " aria-controls=\"excat-body-" + catId + "\" id=\"excat-hdr-" + catId + "\">" +
+            "<div class=\"excat-header-left\">" +
+                "<span class=\"excat-emoji\">" + catEmoji(cat) + "</span>" +
+                "<span class=\"excat-name\">" + esc(cat) + "</span>" +
+                "<span class=\"excat-counts\">" +
+                    "<span class=\"excat-badge excat-badge--tasks\">" + taskCount + "</span>" +
+                    "<span class=\"excat-badge excat-badge--bids\">" + bidCount + "</span>" +
+                "</span>" +
+            "</div>" +
+            "<span class=\"excat-chevron\" aria-hidden=\"true\">&#9660;</span>" +
+            "</button>" +
+            "<div id=\"excat-body-" + catId + "\" class=\"explorer-cat-body\" role=\"list\"></div>";
+
+        const catBody = group.querySelector(".explorer-cat-body");
+        const hdrBtn  = group.querySelector(".explorer-cat-header");
+        hdrBtn.addEventListener("click", () => {
+            const expanded = hdrBtn.getAttribute("aria-expanded") === "true";
+            hdrBtn.setAttribute("aria-expanded", String(!expanded));
+            catBody.classList.toggle("is-collapsed", expanded);
+            group.querySelector(".excat-chevron").innerHTML = expanded ? "&#9658;" : "&#9660;";
+        });
+
+        catTasks.forEach((task) => {
+            const taskBids = bidsByTask[task.id] || [];
+            const hasBids  = taskBids.length > 0;
+            const bidPillCls  = hasBids ? "has-bids" : "no-bids-pill";
+            const bidPillText = hasBids ? "&#127991; " + taskBids.length + " bid" + (taskBids.length !== 1 ? "s" : "") : "No bids yet";
+
+            const taskRow = document.createElement("div");
+            taskRow.className = "explorer-task-row";
+            taskRow.setAttribute("role", "listitem");
+
+            const chevHtml = hasBids ? "&#9658;" : "&mdash;";
+            const dateHtml = task.created_at ? "<span class=\\"extask-date\\">&middot; " + formatDate(task.created_at) + "</span>" : "";
+
+            taskRow.innerHTML = "<button class=\"explorer-task-header\" aria-expanded=\"false\"" +
+                " aria-controls=\"extask-bids-" + esc(task.id) + "\">" +
+                "<div class=\"extask-left\">" +
+                    "<span class=\"extask-chevron\" aria-hidden=\"true\">" + chevHtml + "</span>" +
+                    "<div class=\"extask-info\">" +
+                        "<span class=\"extask-title\">" + esc(task.title) + "</span>" +
+                        "<span class=\"extask-meta\">" +
+                            "<span class=\"task-budget\">" + formatUGX(task.budget) + "</span>" +
+                            dateHtml +
+                        "</span>" +
+                    "</div>" +
+                "</div>" +
+                "<div class=\"extask-right\">" +
+                    "<span class=\"extask-bid-pill " + bidPillCls + "\">" + bidPillText + "</span>" +
+                    statusBadgeHtml(task.status) +
+                "</div>" +
+                "</button>" +
+                "<div id=\"extask-bids-" + esc(task.id) + "\" class=\"explorer-bids-body is-collapsed\" role=\"list\"></div>";
+
+            const taskHdr  = taskRow.querySelector(".explorer-task-header");
+            const bidsBody = taskRow.querySelector(".explorer-bids-body");
+            const chevron  = taskRow.querySelector(".extask-chevron");
+
+            if (hasBids) {
+                taskBids.forEach((bid, idx) => {
+                    const isBest = idx === 0;
+                    const ratingBadge = renderStudentRatingBadge(bid.student_id, allReviews);
+                    const BID_CSS  = { pending: "bid-status--pending", accepted: "bid-status--accepted", rejected: "bid-status--rejected" };
+                    const BID_ICO  = { pending: "&#9203;", accepted: "&#9989;", rejected: "&#10060;" };
+
+                    const bidItem = document.createElement("div");
+                    bidItem.className = "explorer-bid-item" + (isBest ? " explorer-bid-item--best" : "");
+                    bidItem.setAttribute("role", "listitem");
+
+                    const sCls  = BID_CSS[bid.status]  || "bid-status--pending";
+                    const sIco  = BID_ICO[bid.status] || "&#9203;";
+                    const bDate = bid.created_at ? formatDate(bid.created_at) : "";
+
+                    bidItem.innerHTML =
+                        (isBest ? "<div class=\"explorer-best-badge\">&#127942; Best Value</div>" : "") +
+                        "<div class=\"explorer-bid-row\">" +
+                            "<div class=\"explorer-bid-left\">" +
+                                "<span class=\"explorer-bid-rank\">#" + (idx + 1) + "</span>" +
+                                "<div class=\"explorer-bid-details\">" +
+                                    "<span class=\"explorer-bid-amount\">" + formatUGX(bid.bid_amount) + "</span>" +
+                                    ratingBadge +
+                                    "<span class=\"bid-status-pill " + sCls + "\">" + sIco + " " + esc(bid.status) + "</span>" +
+                                "</div>" +
+                                "<p class=\"explorer-bid-proposal\">" + esc(bid.proposal) + "</p>" +
+                                (bDate ? "<span class=\"explorer-bid-date\">" + bDate + "</span>" : "") +
+                            "</div>" +
+                            "<div class=\"explorer-bid-actions\">" +
+                                "<button class=\"btn-explorer-reachout\"" +
+                                    " data-task-id=\"" + esc(task.id) + "\"" +
+                                    " data-bid-id=\"" + esc(bid.id) + "\"" +
+                                    " aria-label=\"Reach out about a bid on " + esc(task.title) + "\"" +
+                                    " title=\"Send a message to the task poster\">" +
+                                    "&#128140; Reach Out" +
+                                "</button>" +
+                            "</div>" +
+                        "</div>";
+
+                    bidItem.querySelector(".btn-explorer-reachout")?.addEventListener("click", () => {
+                        onReachOut && onReachOut(task);
+                    });
+
+                    bidsBody.appendChild(bidItem);
+                });
+
+                taskHdr.addEventListener("click", () => {
+                    const expanded = taskHdr.getAttribute("aria-expanded") === "true";
+                    taskHdr.setAttribute("aria-expanded", String(!expanded));
+                    bidsBody.classList.toggle("is-collapsed", expanded);
+                    chevron.innerHTML = expanded ? "&#9658;" : "&#9660;";
+                });
+            } else {
+                const noBidsEl = document.createElement("div");
+                noBidsEl.className = "explorer-no-bids-msg";
+                noBidsEl.textContent = "No proposals submitted yet for this task.";
+                bidsBody.classList.remove("is-collapsed");
+                bidsBody.appendChild(noBidsEl);
+            }
+
+            catBody.appendChild(taskRow);
+        });
+
+        container.appendChild(group);
+    });
+
+    if (!renderedAny) {
+        const emptyMsg = catFilter === "All"
+            ? "No open tasks with bids have been posted yet. Check back soon!"
+            : "No open tasks found in <strong>" + esc(catFilter) + "</strong> right now.";
+        container.innerHTML = "<div class=\"empty-state\" role=\"status\">" +
+            "<div class=\"empty-state-icon\">&#128269;</div>" +
+            "<h4>Nothing to Explore Yet</h4>" +
+            "<p>" + emptyMsg + "</p>" +
+            "</div>";
+    }
+}
