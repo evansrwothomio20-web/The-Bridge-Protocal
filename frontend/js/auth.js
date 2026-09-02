@@ -126,23 +126,23 @@ export async function registerUser(email, password, fullName, role, phone = null
                 ...(phone ? { phone } : {}),
             };
 
-            const res = await fetch(`${REST}/users`, {
+            // Use PostgREST upsert: if a row with the same email already
+            // exists (e.g. re-registration or UUID mismatch), update it in
+            // place instead of throwing a duplicate-key error.
+            const res = await fetch(`${REST}/users?on_conflict=email`, {
                 method:  "POST",
                 headers: {
                     "apikey":        SUPABASE_ANON,
-                    "Authorization": `Bearer ${SUPABASE_ANON}`,  // anon key always works
+                    "Authorization": `Bearer ${SUPABASE_ANON}`,
                     "Content-Type":  "application/json",
-                    "Prefer":        "return=representation",
+                    "Prefer":        "resolution=merge-duplicates,return=representation",
                 },
                 body: JSON.stringify(payload),
             });
 
-            // 409 Conflict = user row already exists (rare but OK)
-            if (!res.ok && res.status !== 409) {
+            if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
-                console.error("[auth] Could not insert into public users table:", err);
-                // Don't block registration — the user still has an auth account.
-                // The upsertPublicProfile() call in app.js will retry on next login.
+                console.error("[auth] Could not upsert into public users table:", err);
             }
         }
     } catch (profileErr) {

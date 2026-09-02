@@ -256,13 +256,16 @@ export async function fetchUser(userId) {
 }
 
 /**
- * Register a new user.
- * @param {{ full_name:string, email:string, role:"client"|"student", phone?:string }} payload
+ * Register / upsert a user row in the public users table.
+ * Uses PostgREST on_conflict=email so re-registrations or UUID mismatches
+ * are healed automatically rather than throwing a duplicate-key error.
+ * @param {{ id:string, full_name:string, email:string, role:"client"|"student", phone?:string }} payload
  */
 export async function createUser(payload) {
-    return request(`${REST}/users`, {
-        method: "POST",
-        body:   JSON.stringify(payload),
+    return request(`${REST}/users?on_conflict=email`, {
+        method:  "POST",
+        headers: { "Prefer": "resolution=merge-duplicates,return=representation" },
+        body:    JSON.stringify(payload),
     });
 }
 
