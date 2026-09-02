@@ -112,7 +112,9 @@ export async function registerUser(email, password, fullName, role, phone = null
     }
 
     // Step 2 — insert into public users table
-    // Use the Supabase REST API directly so we can pass the anon key
+    // Always use the anon key as the bearer token here — if email confirmation
+    // is enabled in Supabase, data.session will be null at this point and the
+    // insert would fail silently if we tried to use a null access_token.
     try {
         const userId = data.user?.id;
         if (userId) {
@@ -128,7 +130,7 @@ export async function registerUser(email, password, fullName, role, phone = null
                 method:  "POST",
                 headers: {
                     "apikey":        SUPABASE_ANON,
-                    "Authorization": `Bearer ${data.session?.access_token ?? SUPABASE_ANON}`,
+                    "Authorization": `Bearer ${SUPABASE_ANON}`,  // anon key always works
                     "Content-Type":  "application/json",
                     "Prefer":        "return=representation",
                 },
@@ -138,11 +140,13 @@ export async function registerUser(email, password, fullName, role, phone = null
             // 409 Conflict = user row already exists (rare but OK)
             if (!res.ok && res.status !== 409) {
                 const err = await res.json().catch(() => ({}));
-                console.warn("[auth] Could not insert into users table:", err);
+                console.error("[auth] Could not insert into public users table:", err);
+                // Don't block registration — the user still has an auth account.
+                // The upsertPublicProfile() call in app.js will retry on next login.
             }
         }
     } catch (profileErr) {
-        console.warn("[auth] Profile insert failed:", profileErr);
+        console.error("[auth] Profile insert failed (network error):", profileErr);
     }
 
     return {

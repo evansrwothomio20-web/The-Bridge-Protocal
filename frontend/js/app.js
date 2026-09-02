@@ -26,6 +26,7 @@ import {
     fetchAllReviews,
     fetchUserById,
     fetchUser,
+    createUser,
 } from "./api.js";
 
 import {
@@ -115,6 +116,40 @@ async function initSession() {
     if (ok && data) {
         currentUserRole = data.role || "";
         populateUserChip(data.full_name || session.user.email, data.role || "");
+    } else {
+        // Profile row is missing — this happens when email confirmation is
+        // enabled and the public.users insert failed silently at sign-up.
+        // Recover by upserting the row now, using the auth session metadata.
+        console.warn("[app] Public profile row missing — attempting to create it now.");
+        await upsertPublicProfile(session);
+        // Re-fetch to populate the chip with the correct name/role
+        const retry = await fetchUser(currentUserId);
+        if (retry.ok && retry.data) {
+            currentUserRole = retry.data.role || "";
+            populateUserChip(retry.data.full_name || session.user.email, retry.data.role || "");
+        }
+    }
+}
+
+/**
+ * Safety-net: create a public users row for the current auth user if it is
+ * missing. Uses the raw_user_meta_data stored in the auth session at sign-up.
+ * @param {import("@supabase/supabase-js").Session} session
+ */
+async function upsertPublicProfile(session) {
+    const user  = session.user;
+    const meta  = user.user_metadata || {};
+    const payload = {
+        id:        user.id,
+        full_name: meta.full_name || user.email,
+        email:     user.email,
+        role:      meta.role || "client",   // default to client if not stored
+    };
+    const { ok, message } = await createUser(payload);
+    if (!ok) {
+        console.error("[app] upsertPublicProfile failed:", message);
+    } else {
+        console.info("[app] Public profile row created successfully.");
     }
 }
 
