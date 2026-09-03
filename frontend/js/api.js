@@ -25,14 +25,30 @@
 
 // ─── Supabase connection ──────────────────────────────────────────────────────
 
+import { supabase } from "./auth.js";
+
 const SUPABASE_URL  = "https://ldrjyiwyevnzoyaymtwb.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxkcmp5aXd5ZXZuem95YXltdHdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MTEzMzUsImV4cCI6MjEwMDk4NzMzNX0.Gk4i-SaIqdn_VSuB-LszVkHKAHNv4y1Zwgr5gAi4LoU";
 
-/** Build headers required by every Supabase REST request. */
-function supabaseHeaders(extra = {}) {
+/**
+ * Get the current user's JWT access token, falling back to the anon key.
+ * This is critical for RLS-protected tables that require authenticated requests.
+ */
+async function getAccessToken() {
+    try {
+        const { data } = await supabase.auth.getSession();
+        return data?.session?.access_token || SUPABASE_ANON;
+    } catch {
+        return SUPABASE_ANON;
+    }
+}
+
+/** Build headers required by every Supabase REST request, using the live session JWT. */
+async function supabaseHeaders(extra = {}) {
+    const token = await getAccessToken();
     return {
         "apikey":        SUPABASE_ANON,
-        "Authorization": `Bearer ${SUPABASE_ANON}`,
+        "Authorization": `Bearer ${token}`,
         "Content-Type":  "application/json",
         "Prefer":        "return=representation",   // always return the modified row
         ...extra,
@@ -50,9 +66,10 @@ function supabaseHeaders(extra = {}) {
  */
 async function request(url, opts = {}) {
     try {
+        const headers = await supabaseHeaders();
         const res = await fetch(url, {
             ...opts,
-            headers: { ...supabaseHeaders(), ...(opts.headers || {}) },
+            headers: { ...headers, ...(opts.headers || {}) },
         });
 
         // 204 No Content — success, no body
