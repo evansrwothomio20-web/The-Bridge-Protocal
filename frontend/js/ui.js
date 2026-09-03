@@ -1295,7 +1295,7 @@ export function renderBidExplorer(tasks, bids, allReviews, onReachOut, catFilter
             taskRow.setAttribute("role", "listitem");
 
             const chevHtml = hasBids ? "&#9658;" : "&mdash;";
-            const dateHtml = task.created_at ? "<span class=\\"extask-date\\">&middot; " + formatDate(task.created_at) + "</span>" : "";
+            const dateHtml = task.created_at ? "<span class=\"extask-date\">&middot; " + formatDate(task.created_at) + "</span>" : "";
 
             taskRow.innerHTML = "<button class=\"explorer-task-header\" aria-expanded=\"false\"" +
                 " aria-controls=\"extask-bids-" + esc(task.id) + "\">" +

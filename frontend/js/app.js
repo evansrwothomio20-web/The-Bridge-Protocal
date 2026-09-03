@@ -73,6 +73,12 @@ let activeFilter = "All";
 /** @type {string} Currently selected category filter (bid explorer) */
 let activeExplorerFilter = "All";
 
+/** @type {Task[]} Tasks fetched specifically for the Bid Explorer (separate from marketplace allTasks) */
+let _explorerTasks = [];
+
+/** @type {Bid[]} Bids fetched for the Bid Explorer (avoids re-fetching on category switch) */
+let _explorerBids = [];
+
 /** @type {"marketplace"|"myTasks"|"bidExplorer"} Active view tab */
 let activeView = "marketplace";
 
@@ -267,7 +273,7 @@ async function loadBidExplorer() {
     // Show loading state
     renderBidExplorer(null, [], allReviews, handleExplorerReachOut, activeExplorerFilter);
 
-    // Fetch tasks and bids in parallel
+    // Fetch open tasks and ALL bids in parallel
     const [tasksRes, bidsRes] = await Promise.all([fetchTasks(), fetchBids()]);
 
     if (!tasksRes.ok) {
@@ -275,10 +281,11 @@ async function loadBidExplorer() {
         return;
     }
 
-    const tasks = Array.isArray(tasksRes.data) ? tasksRes.data : [];
-    _explorerBids = Array.isArray(bidsRes.data) ? bidsRes.data : [];
+    // Store in dedicated explorer caches so category-filter switches work correctly
+    _explorerTasks = Array.isArray(tasksRes.data) ? tasksRes.data : [];
+    _explorerBids  = Array.isArray(bidsRes.data)  ? bidsRes.data  : [];
 
-    renderBidExplorer(tasks, _explorerBids, allReviews, handleExplorerReachOut, activeExplorerFilter);
+    renderBidExplorer(_explorerTasks, _explorerBids, allReviews, handleExplorerReachOut, activeExplorerFilter);
 }
 
 /**
@@ -387,7 +394,8 @@ function setupEventListeners() {
             if (!chip) return;
             activeExplorerFilter = chip.dataset.excat || "All";
             syncExplorerFilterChips();
-            renderBidExplorer(allTasks, _explorerBids, allReviews, handleExplorerReachOut, activeExplorerFilter);
+            // Use _explorerTasks (fetched by loadBidExplorer), NOT allTasks (marketplace cache)
+            renderBidExplorer(_explorerTasks, _explorerBids, allReviews, handleExplorerReachOut, activeExplorerFilter);
         });
 
     // ── Refresh button (Marketplace)
@@ -579,8 +587,6 @@ function syncExplorerFilterChips() {
     });
 }
 
-/** Cache of bids fetched for the Bid Explorer (avoids re-fetching on category switch) */
-let _explorerBids = [];
 
 
 // ─── Handlers ─────────────────────────────────────────────────────────────────

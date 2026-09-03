@@ -503,8 +503,8 @@
             <form id="reachout-form" novalidate>
                 <input type="hidden" id="reachout-task-id">
                 <input type="hidden" id="reachout-receiver-id">
-                <!-- Sender ID — replace with authenticated user ID in production -->
-                <input type="hidden" id="reachout-sender-id" value="22222222-2222-2222-2222-222222222222">
+                <!-- Sender ID — injected by app.js from the active Supabase session -->
+                <input type="hidden" id="reachout-sender-id" value="">
 
                 <div class="form-group">
                     <label for="reachout-subject">
