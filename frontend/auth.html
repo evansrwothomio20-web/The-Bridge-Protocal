@@ -383,17 +383,28 @@
     <script type="module">
         import { getSession } from "./js/auth.js";
 
-        // Already signed in? skip to app
+        // Already signed in? redirect immediately
         getSession().then(s => { if (s) window.location.href = "index.html"; });
 
-        // ── Clerk loader ──────────────────────────────────────────────────────────
-        async function waitForClerk(ms = 8000) {
+        // ── Clerk loader (matches auth.js Phase 1 + Phase 2) ─────────────────────
+        async function waitForClerk(ms = 10000) {
             const end = Date.now() + ms;
+
+            // Phase 1: wait for SDK + load()
             while (Date.now() < end) {
                 if (window.Clerk && typeof window.Clerk.load === "function") {
                     try { await window.Clerk.load(); } catch (_) {}
-                    return;
+                    break;
                 }
+                await new Promise(r => setTimeout(r, 80));
+            }
+
+            if (!window.Clerk) return;
+
+            // Phase 2: wait for session to fully settle
+            // (undefined = loading, null = logged out, object = signed in)
+            while (Date.now() < end) {
+                if (window.Clerk.session !== undefined) return;
                 await new Promise(r => setTimeout(r, 80));
             }
         }
@@ -516,6 +527,12 @@
             setLoading(btn, true);
             await waitForClerk();
             try {
+                // If already signed in, just redirect
+                if (window.Clerk?.session) {
+                    window.location.href = "index.html";
+                    return;
+                }
+
                 const res = await window.Clerk.client.signIn.create({
                     identifier: email,
                     password:   password,
@@ -528,6 +545,12 @@
                     showAlert("login", "error", "Sign in incomplete. Please try again.");
                 }
             } catch (err) {
+                // If Clerk says the user is already signed in, just redirect
+                const code = err?.errors?.[0]?.code || "";
+                if (code === "identifier_already_signed_in" || code === "session_exists") {
+                    window.location.href = "index.html";
+                    return;
+                }
                 showAlert("login", "error", friendlyError(err));
             } finally { setLoading(btn, false); }
         });
