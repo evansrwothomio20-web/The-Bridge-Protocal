@@ -413,13 +413,43 @@
         function setLoading(btn, v) { if (!btn) return; btn.disabled = v; btn.classList.toggle("loading", v); }
 
         function friendlyError(err) {
-            const raw = (err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || "").toLowerCase();
-            if (raw.includes("password")) return "Incorrect email or password. Please try again.";
-            if (raw.includes("identifier") || raw.includes("find") || raw.includes("account")) return "No account found with that email. Please sign up first.";
-            if (raw.includes("already") || raw.includes("taken") || raw.includes("exists")) return "An account with this email already exists. Try signing in.";
-            if (raw.includes("rate") || raw.includes("too many")) return "Too many attempts. Please wait a moment and try again.";
-            if (raw.includes("verification") || raw.includes("code")) return "Invalid or expired code. Please try again.";
-            return err?.errors?.[0]?.longMessage || err?.message || "Something went wrong. Please try again.";
+            // Use Clerk's specific error codes for precise user-facing messages
+            const code = err?.errors?.[0]?.code || "";
+            const msg  = (err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || "").toLowerCase();
+            console.warn("[auth error]", code, err?.errors?.[0]?.longMessage || err?.message);
+
+            // Login / identifier errors
+            if (code === "form_identifier_not_found")
+                return "No account found with that email address. Please sign up first.";
+            if (code === "form_password_incorrect" || code === "form_password_invalid")
+                return "Incorrect password. Please try again or use 'Reset' to recover your account.";
+            if (code === "strategy_for_user_invalid")
+                return "This account was created differently. Try a different sign-in method.";
+
+            // Sign-up errors
+            if (code === "form_identifier_exists" || code === "identifier_already_signed_in")
+                return "An account with this email already exists. Please sign in instead.";
+            if (code === "form_param_format_invalid" && msg.includes("email"))
+                return "That doesn't look like a valid email address.";
+            if (code === "form_password_length_too_short")
+                return "Password must be at least 8 characters long.";
+            if (code === "form_password_pwned" || code === "form_password_too_common")
+                return "That password is too common. Please choose a stronger password.";
+
+            // OTP / verification errors
+            if (code === "form_code_incorrect")
+                return "That code is incorrect. Please check your email and try again.";
+            if (code === "verification_expired" || code === "form_code_expired")
+                return "That code has expired. Please click 'Resend code' to get a new one.";
+
+            // Network / rate limit
+            if (code === "too_many_requests" || msg.includes("rate"))
+                return "Too many attempts. Please wait a moment and try again.";
+            if (msg.includes("network") || msg.includes("fetch"))
+                return "Network error. Please check your connection and try again.";
+
+            // Fallback — show raw Clerk message if available
+            return err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || "Something went wrong. Please try again.";
         }
 
         // ── Tab switching ─────────────────────────────────────────────────────────
@@ -525,16 +555,20 @@
             setLoading(btn, true);
             await waitForClerk();
             try {
-                // Create Clerk account with the user's real password
+                // Build a clean username from the email prefix
                 const nameParts = fullName.trim().split(" ");
                 const firstName = nameParts[0];
                 const lastName  = nameParts.slice(1).join(" ") || "";
+                // Username: lowercase email prefix, only alphanumeric+underscore, max 30 chars
+                const usernameBase = email.split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 22);
+                const username = usernameBase + "_" + Math.floor(Math.random() * 9999);
 
                 signUpAttempt = await window.Clerk.client.signUp.create({
                     emailAddress: email,
                     password:     password,
                     firstName:    firstName,
                     lastName:     lastName,
+                    username:     username,   // provide upfront to avoid missing_requirements
                 });
 
                 // Send email verification OTP
@@ -547,7 +581,27 @@
                 document.getElementById("reg-otp-code").focus();
 
             } catch (err) {
-                showAlert("register", "error", friendlyError(err));
+                // If username field isn't enabled on this Clerk app, retry without it
+                if (err?.errors?.[0]?.code === "form_param_unknown" || (err?.errors?.[0]?.message || "").toLowerCase().includes("username")) {
+                    try {
+                        const nameParts2 = fullName.trim().split(" ");
+                        signUpAttempt = await window.Clerk.client.signUp.create({
+                            emailAddress: email,
+                            password:     password,
+                            firstName:    nameParts2[0],
+                            lastName:     nameParts2.slice(1).join(" ") || "",
+                        });
+                        await signUpAttempt.prepareEmailAddressVerification({ strategy: "email_code" });
+                        document.getElementById("reg-step-1").style.display   = "none";
+                        document.getElementById("reg-otp-step").style.display = "block";
+                        document.getElementById("reg-otp-sent-to").textContent = "Code sent to " + email;
+                        document.getElementById("reg-otp-code").focus();
+                    } catch (err2) {
+                        showAlert("register", "error", friendlyError(err2));
+                    }
+                } else {
+                    showAlert("register", "error", friendlyError(err));
+                }
             } finally { setLoading(btn, false); }
         });
 
@@ -561,29 +615,46 @@
             setLoading(btn, true);
             try {
                 const res = await signUpAttempt.attemptEmailAddressVerification({ code });
+                console.log("[signup verify] status:", res.status, "missing:", res.missingFields);
 
                 if (res.status === "complete") {
                     await window.Clerk.setActive({ session: res.createdSessionId });
-                    // Create Supabase users row
                     const { getSession } = await import("./js/auth.js");
                     await getSession();
-                    showAlert("register", "success", "✅ Account created! Welcome to The Bridge Protocol!");
+                    showAlert("register", "success", "\u2705 Account created! Welcome to The Bridge Protocol!");
                     setTimeout(() => { window.location.href = "index.html"; }, 900);
 
                 } else if (res.status === "missing_requirements") {
-                    // All required fields were provided; try finishing up
-                    const done = await signUpAttempt.update({});
-                    if (done.status === "complete") {
-                        await window.Clerk.setActive({ session: done.createdSessionId });
-                        const { getSession } = await import("./js/auth.js");
-                        await getSession();
-                        showAlert("register", "success", "✅ Account created! Welcome to The Bridge Protocol!");
-                        setTimeout(() => { window.location.href = "index.html"; }, 900);
-                    } else {
-                        showAlert("register", "error", "Could not complete sign-up. Please try again.");
+                    // Detect which fields are still missing and supply them
+                    const missing = res.missingFields || [];
+                    console.log("[signup] missing fields:", missing);
+                    const updateData = {};
+
+                    if (missing.includes("username")) {
+                        const base = (signUpAttempt.emailAddress || "user").split("@")[0].toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 20);
+                        updateData.username = base + "_" + Math.floor(Math.random() * 9999);
                     }
+
+                    try {
+                        const finalRes = await signUpAttempt.update(updateData);
+                        console.log("[signup update] status:", finalRes.status);
+
+                        if (finalRes.status === "complete") {
+                            await window.Clerk.setActive({ session: finalRes.createdSessionId });
+                            const { getSession } = await import("./js/auth.js");
+                            await getSession();
+                            showAlert("register", "success", "\u2705 Account created! Welcome to The Bridge Protocol!");
+                            setTimeout(() => { window.location.href = "index.html"; }, 900);
+                        } else {
+                            const stillMissing = finalRes.missingFields?.join(", ") || "unknown";
+                            showAlert("register", "error", `Sign-up needs more info: ${stillMissing}. Please contact support.`);
+                        }
+                    } catch (updateErr) {
+                        showAlert("register", "error", friendlyError(updateErr));
+                    }
+
                 } else {
-                    showAlert("register", "error", "Verification incomplete. Please try again.");
+                    showAlert("register", "error", "Email verification incomplete. Please try again.");
                 }
             } catch (err) {
                 showAlert("register", "error", friendlyError(err));
