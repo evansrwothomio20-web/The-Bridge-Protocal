@@ -108,58 +108,35 @@ document.addEventListener("DOMContentLoaded", async () => {
 // ─── Session Initialisation ──────────────────────────────────────────────────────────────
 
 /**
- * Fetch the active Supabase session, resolve the user's public profile,
- * then inject IDs into all hidden form fields and populate the user chip.
- * This must be called before any API writes (task creation, bid placement).
+ * Fetch the active Clerk session (mapped to a Supabase public.users row),
+ * inject user IDs into all hidden form fields, and populate the navbar chip.
+ * auth.js handles creating the Supabase row on first sign-in automatically,
+ * so we only need to fetch it here.
  */
 async function initSession() {
     const session = await getSession();
-    if (!session) return; // not logged in — requireAuth() will redirect
+    if (!session) return; // not signed in — requireAuth() handles redirect
 
     currentUserId = session.user.id;
 
-    // Inject into hidden fields for Post Task and Place Bid modals
+    // Inject UUID into hidden fields for Post Task, Place Bid, Reach-Out modals
     injectUserId(currentUserId);
 
-    // Fetch the public users table row for role + full_name
-    const { ok, data } = await fetchUser(currentUserId);
-    if (ok && data) {
-        currentUserRole = data.role || "";
-        populateUserChip(data.full_name || session.user.email, data.role || "");
-    } else {
-        // Profile row is missing — this happens when email confirmation is
-        // enabled and the public.users insert failed silently at sign-up.
-        // Recover by upserting the row now, using the auth session metadata.
-        console.warn("[app] Public profile row missing — attempting to create it now.");
-        await upsertPublicProfile(session);
-        // Re-fetch to populate the chip with the correct name/role
-        const retry = await fetchUser(currentUserId);
-        if (retry.ok && retry.data) {
-            currentUserRole = retry.data.role || "";
-            populateUserChip(retry.data.full_name || session.user.email, retry.data.role || "");
-        }
-    }
-}
+    // session.user.user_metadata is populated by auth.js from the DB row
+    const meta = session.user.user_metadata || {};
+    currentUserRole = meta.role || "";
 
-/**
- * Safety-net: create a public users row for the current auth user if it is
- * missing. Uses the raw_user_meta_data stored in the auth session at sign-up.
- * @param {import("@supabase/supabase-js").Session} session
- */
-async function upsertPublicProfile(session) {
-    const user  = session.user;
-    const meta  = user.user_metadata || {};
-    const payload = {
-        id:        user.id,
-        full_name: meta.full_name || user.email,
-        email:     user.email,
-        role:      meta.role || "client",   // default to client if not stored
-    };
-    const { ok, message } = await createUser(payload);
-    if (!ok) {
-        console.error("[app] upsertPublicProfile failed:", message);
-    } else {
-        console.info("[app] Public profile row created successfully.");
+    // Prefer the DB row's name; fall back to the email prefix
+    const displayName = meta.full_name || session.user.email || "User";
+    populateUserChip(displayName, currentUserRole);
+
+    // Double-check: if the DB row is somehow missing, re-fetch and populate
+    if (!meta.full_name) {
+        const { ok, data } = await fetchUser(currentUserId);
+        if (ok && data) {
+            currentUserRole = data.role || "";
+            populateUserChip(data.full_name || session.user.email, data.role || "");
+        }
     }
 }
 

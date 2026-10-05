@@ -1,193 +1,162 @@
 /**
  * auth.js — The Bridge Protocol
  *
- * Supabase Auth helpers. Handles:
- *   - Sign in with email + password
- *   - Sign up (creates auth.users entry + public users table row)
- *   - Forgot password (sends Supabase reset email)
- *   - Session retrieval / logout
+ * Authentication: Clerk (Email OTP sign-in — passwordless)
+ * Database:       Supabase (unchanged — tasks, bids, users, reviews, inquiries)
  *
- * Uses the Supabase JS SDK v2 loaded via ESM CDN.
+ * Strategy
+ * ────────
+ *  • Clerk handles identity: email OTP, sessions, and sign-out.
+ *  • Supabase is used ONLY as a database. Its own auth is bypassed entirely.
+ *  • On first Clerk sign-in we look up the user by email in public.users.
+ *    If no row exists we create one with a fresh UUID so all FK references
+ *    (tasks.client_id, bids.student_id, …) keep working unchanged.
+ *  • getSession() returns a shape compatible with the existing app.js:
+ *      { user: { id: <uuid>, email, user_metadata: { full_name, role } } }
  */
 
-// ─── Supabase client ──────────────────────────────────────────────────────────
+// ─── Supabase client (database queries only) ─────────────────────────────────
+
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
 const SUPABASE_URL  = "https://ldrjyiwyevnzoyaymtwb.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxkcmp5aXd5ZXZuem95YXltdHdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MTEzMzUsImV4cCI6MjEwMDk4NzMzNX0.Gk4i-SaIqdn_VSuB-LszVkHKAHNv4y1Zwgr5gAi4LoU";
 
-// Load Supabase JS v2 from CDN (ESM)
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
-
-/** Shared Supabase client — used across auth.js and can be imported elsewhere */
+/** Shared Supabase client — imported by api.js for all DB queries */
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
-const REST = `${SUPABASE_URL}/rest/v1`;
-
-// ─── Session helpers ──────────────────────────────────────────────────────────
+// ─── Clerk bootstrap ─────────────────────────────────────────────────────────
 
 /**
- * Get the current active session (null if not logged in).
- * @returns {Promise<import("@supabase/supabase-js").Session|null>}
+ * Wait for the Clerk browser SDK to finish loading.
+ * The CDN <script> tag on each page calls Clerk.load() automatically,
+ * but ES modules may execute before it completes — so we poll briefly.
+ * @param {number} [timeoutMs=8000]
  */
-export async function getSession() {
-    const { data } = await supabase.auth.getSession();
-    return data?.session ?? null;
+async function waitForClerk(timeoutMs = 8000) {
+    if (window.__clerkReady) return;
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+        if (window.Clerk && typeof window.Clerk.load === "function") {
+            try { await window.Clerk.load(); } catch (_) { /* already loaded */ }
+            window.__clerkReady = true;
+            return;
+        }
+        await new Promise(r => setTimeout(r, 80));
+    }
+    console.warn("[auth] Clerk SDK did not load within the timeout period.");
+}
+
+// ─── Supabase profile helpers ─────────────────────────────────────────────────
+
+/**
+ * Look up a public.users row by email.
+ * @param {string} email
+ * @returns {Promise<object|null>}
+ */
+async function findUserByEmail(email) {
+    const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("email", email)
+        .maybeSingle();
+    if (error) console.error("[auth] findUserByEmail:", error.message);
+    return data ?? null;
 }
 
 /**
- * Get the current logged-in user object (null if not logged in).
- * @returns {Promise<import("@supabase/supabase-js").User|null>}
+ * Insert a new row into public.users for a first-time Clerk sign-in.
+ * Uses crypto.randomUUID() to generate a valid UUID for the PK.
+ * @param {{ email:string, full_name:string, role?:string }} payload
+ * @returns {Promise<object|null>}
  */
-export async function getCurrentUser() {
-    const { data } = await supabase.auth.getUser();
-    return data?.user ?? null;
+async function insertUserRow({ email, full_name, role = "client" }) {
+    const id = crypto.randomUUID();
+    const { data, error } = await supabase
+        .from("users")
+        .insert({ id, email, full_name, role })
+        .select()
+        .single();
+    if (error) console.error("[auth] insertUserRow:", error.message);
+    return data ?? null;
 }
 
 /**
- * Sign out the current user and redirect to auth.html.
+ * Resolve (or lazily create) the public.users row for the Clerk user.
+ * Returns the row or null.
+ * @param {object} clerkUser — window.Clerk.user
  */
-export async function logout() {
-    await supabase.auth.signOut();
-    window.location.href = "auth.html";
-}
-
-// ─── Auth guard ───────────────────────────────────────────────────────────────
-
-/**
- * Call this at the top of index.html's boot script.
- * If there is no active session, redirect to auth.html.
- * Returns the session if valid.
- */
-export async function requireAuth() {
-    const session = await getSession();
-    if (!session) {
-        window.location.href = "auth.html";
+async function resolveProfile(clerkUser) {
+    const email = clerkUser.primaryEmailAddress?.emailAddress;
+    if (!email) {
+        console.error("[auth] Clerk user has no primary email address.");
         return null;
     }
-    return session;
+
+    // Try existing row first
+    const existing = await findUserByEmail(email);
+    if (existing) return existing;
+
+    // First sign-in: create the row
+    const first    = clerkUser.firstName || "";
+    const last     = clerkUser.lastName  || "";
+    const fullName = [first, last].filter(Boolean).join(" ") || email.split("@")[0];
+    return await insertUserRow({ email, full_name: fullName, role: "client" });
 }
 
-// ─── Login ────────────────────────────────────────────────────────────────────
+// ─── Public auth API ─────────────────────────────────────────────────────────
 
 /**
- * Sign in with email and password.
- * @param {string} email
- * @param {string} password
- * @returns {Promise<{ok: boolean, session: object|null, message: string}>}
+ * Return the current Clerk user, or null if not signed in.
  */
-export async function loginUser(email, password) {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-        return { ok: false, session: null, message: friendlyError(error.message) };
-    }
-    return { ok: true, session: data.session, message: "Logged in" };
+export async function getCurrentUser() {
+    await waitForClerk();
+    return window.Clerk?.user ?? null;
 }
 
-// ─── Register ─────────────────────────────────────────────────────────────────
-
 /**
- * Register a new user.
- * 1. Creates an entry in Supabase auth.users (handles password hashing + JWT).
- * 2. Inserts a matching profile row into the public `users` table.
- *
- * @param {string} email
- * @param {string} password
- * @param {string} fullName
- * @param {"client"|"student"} role
- * @param {string} [phone]
- * @returns {Promise<{ok: boolean, message: string}>}
+ * Return a session-shaped object compatible with app.js:
+ *   { user: { id, email, user_metadata: { full_name, role } } }
+ * Returns null if the user is not signed in via Clerk.
  */
-export async function registerUser(email, password, fullName, role, phone = null) {
-    // Step 1 — create auth user
-    const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-            data: { full_name: fullName, role },   // stored in auth.users.raw_user_meta_data
-        },
-    });
+export async function getSession() {
+    await waitForClerk();
+    const clerkUser = window.Clerk?.user;
+    if (!clerkUser) return null;
 
-    if (error) {
-        return { ok: false, message: friendlyError(error.message) };
-    }
-
-    // Step 2 — insert into public users table
-    // Always use the anon key as the bearer token here — if email confirmation
-    // is enabled in Supabase, data.session will be null at this point and the
-    // insert would fail silently if we tried to use a null access_token.
-    try {
-        const userId = data.user?.id;
-        if (userId) {
-            const payload = {
-                id:        userId,
-                full_name: fullName,
-                email,
-                role,
-                ...(phone ? { phone } : {}),
-            };
-
-            // Use PostgREST upsert: if a row with the same email already
-            // exists (e.g. re-registration or UUID mismatch), update it in
-            // place instead of throwing a duplicate-key error.
-            const res = await fetch(`${REST}/users?on_conflict=email`, {
-                method:  "POST",
-                headers: {
-                    "apikey":        SUPABASE_ANON,
-                    "Authorization": `Bearer ${SUPABASE_ANON}`,
-                    "Content-Type":  "application/json",
-                    "Prefer":        "resolution=merge-duplicates,return=representation",
-                },
-                body: JSON.stringify(payload),
-            });
-
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                console.error("[auth] Could not upsert into public users table:", err);
-            }
-        }
-    } catch (profileErr) {
-        console.error("[auth] Profile insert failed (network error):", profileErr);
-    }
+    const profile = await resolveProfile(clerkUser);
+    if (!profile) return null;
 
     return {
-        ok: true,
-        message: data.session
-            ? "Account created! Welcome aboard 🎉"
-            : "Account created! Check your email to confirm your address.",
+        user: {
+            id:    profile.id,
+            email: profile.email,
+            user_metadata: {
+                full_name: profile.full_name,
+                role:      profile.role,
+            },
+        },
     };
 }
 
-// ─── Forgot Password ──────────────────────────────────────────────────────────
-
 /**
- * Send a Supabase password-reset email.
- * @param {string} email
- * @returns {Promise<{ok: boolean, message: string}>}
+ * Redirect to auth.html when there is no active Clerk session.
+ * Returns the Clerk user object when authenticated.
  */
-export async function forgotPassword(email) {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth.html?reset=true`,
-    });
-    if (error) {
-        return { ok: false, message: friendlyError(error.message) };
+export async function requireAuth() {
+    await waitForClerk();
+    if (!window.Clerk?.user) {
+        window.location.href = "auth.html";
+        return null;
     }
-    return { ok: true, message: "Password reset email sent! Check your inbox." };
+    return window.Clerk.user;
 }
 
-// ─── Error messages ───────────────────────────────────────────────────────────
-
 /**
- * Convert Supabase/GoTrue error messages into user-friendly strings.
- * @param {string} raw
- * @returns {string}
+ * Sign the user out of Clerk and redirect to auth.html.
  */
-function friendlyError(raw = "") {
-    const msg = raw.toLowerCase();
-    if (msg.includes("invalid login credentials"))  return "Invalid email or password. Please try again.";
-    if (msg.includes("email not confirmed"))         return "Please confirm your email before logging in.";
-    if (msg.includes("user already registered"))     return "An account with this email already exists. Try logging in.";
-    if (msg.includes("password should be"))          return "Password must be at least 6 characters.";
-    if (msg.includes("rate limit"))                  return "Too many attempts. Please wait a moment and try again.";
-    if (msg.includes("network"))                     return "Cannot reach the server. Check your internet connection.";
-    return raw || "Something went wrong. Please try again.";
+export async function logout() {
+    await waitForClerk();
+    await window.Clerk?.signOut();
+    window.location.href = "auth.html";
 }

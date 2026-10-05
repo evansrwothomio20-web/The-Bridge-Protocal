@@ -31,26 +31,16 @@ const SUPABASE_URL  = "https://ldrjyiwyevnzoyaymtwb.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxkcmp5aXd5ZXZuem95YXltdHdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MTEzMzUsImV4cCI6MjEwMDk4NzMzNX0.Gk4i-SaIqdn_VSuB-LszVkHKAHNv4y1Zwgr5gAi4LoU";
 
 /**
- * Get the current user's JWT access token, falling back to the anon key.
- * This is critical for RLS-protected tables that require authenticated requests.
+ * Build headers for every Supabase REST request.
+ * Since Clerk now handles authentication (not Supabase Auth), we always
+ * use the anon key. Supabase is purely a database here — no RLS auth needed.
  */
-async function getAccessToken() {
-    try {
-        const { data } = await supabase.auth.getSession();
-        return data?.session?.access_token || SUPABASE_ANON;
-    } catch {
-        return SUPABASE_ANON;
-    }
-}
-
-/** Build headers required by every Supabase REST request, using the live session JWT. */
 async function supabaseHeaders(extra = {}) {
-    const token = await getAccessToken();
     return {
         "apikey":        SUPABASE_ANON,
-        "Authorization": `Bearer ${token}`,
+        "Authorization": `Bearer ${SUPABASE_ANON}`,
         "Content-Type":  "application/json",
-        "Prefer":        "return=representation",   // always return the modified row
+        "Prefer":        "return=representation",
         ...extra,
     };
 }

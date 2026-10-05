@@ -8,6 +8,15 @@
     <meta name="theme-color" content="#fbf9f5">
     <meta name="robots" content="noindex">
 
+    <!-- Clerk Auth SDK (email OTP) -->
+    <script
+        async
+        crossorigin="anonymous"
+        data-clerk-publishable-key="pk_test_c2hhcmluZy1ndWxsLTQ0NjYuY2xlcmsuYWNjb3VudHMuZGV2JA"
+        src="https://sharing-gull-4466.clerk.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+        type="text/javascript">
+    </script>
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -490,16 +499,17 @@
                 <button id="tab-forgot"   class="auth-tab-btn"        role="tab" aria-selected="false" aria-controls="panel-forgot"   onclick="switchTab('forgot')">Reset</button>
             </div>
 
-            <!-- ══ LOGIN PANEL ══ -->
+            <!-- ════ EMAIL + OTP SIGN-IN PANEL ════ -->
             <div id="panel-login" class="auth-panel active" role="tabpanel" aria-labelledby="tab-login">
-                <p class="auth-panel-heading">Welcome back</p>
-                <p class="auth-panel-sub">Sign in to access the marketplace.</p>
+                <p class="auth-panel-heading">Welcome back 👋</p>
+                <p class="auth-panel-sub">Enter your email — we'll send a one-time code to verify it's you.</p>
 
                 <div id="login-alert" class="auth-alert hidden" role="alert" aria-live="polite">
                     <span class="auth-alert-icon" aria-hidden="true"></span>
                     <span class="auth-alert-msg"></span>
                 </div>
 
+                <!-- Step 1: Enter email -->
                 <form id="login-form" novalidate>
                     <div class="form-group">
                         <label for="login-email">Email address</label>
@@ -507,74 +517,60 @@
                                placeholder="you@example.com"
                                autocomplete="email" required>
                     </div>
-
-                    <div class="form-group">
-                        <label for="login-password">Password</label>
-                        <div class="input-password-wrapper">
-                            <input type="password" id="login-password" name="password"
-                                   placeholder="••••••••"
-                                   autocomplete="current-password" required>
-                            <button type="button" class="password-toggle-btn" aria-label="Toggle password visibility"
-                                    onclick="togglePassword('login-password', this)">
-                                <svg id="eye-login" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    <a href="#" class="forgot-link" onclick="switchTab('forgot'); return false;">Forgot password?</a>
-
                     <button type="submit" id="login-submit-btn" class="auth-submit-btn">
-                        <span class="btn-text">Sign In</span>
+                        <span class="btn-text">Send Verification Code →</span>
                         <span class="btn-spinner" aria-hidden="true"><span class="spinner-ring"></span></span>
                     </button>
                 </form>
 
-                <div class="auth-divider">or</div>
+                <!-- Step 2: Enter OTP code (shown after email is sent) -->
+                <div id="otp-step" style="display:none; margin-top:20px;">
+                    <div class="otp-info-box">
+                        <span class="otp-info-icon">📧</span>
+                        <span id="otp-sent-to">We sent a 6-digit code to your email.</span>
+                    </div>
+                    <div class="form-group" style="margin-top:14px;">
+                        <label for="otp-code">Verification Code</label>
+                        <input type="text" id="otp-code"
+                               placeholder="Enter 6-digit code"
+                               inputmode="numeric"
+                               maxlength="6"
+                               autocomplete="one-time-code"
+                               style="letter-spacing:0.25em; font-size:1.3rem; text-align:center; font-weight:700;">
+                    </div>
+                    <button type="button" id="otp-verify-btn" class="auth-submit-btn">
+                        <span class="btn-text">Verify & Sign In ✓</span>
+                        <span class="btn-spinner" aria-hidden="true"><span class="spinner-ring"></span></span>
+                    </button>
+                    <p style="text-align:center; margin-top:12px; font-size:0.8rem; color:var(--text-muted);">
+                        Didn't get it? <a href="#" id="resend-otp-link" style="color:var(--indigo);">Resend code</a>
+                    </p>
+                </div>
 
-                <p class="auth-footer">
-                    Don't have an account?
-                    <a href="#" onclick="switchTab('register'); return false;">Create one →</a>
+                <p class="auth-footer" style="margin-top:18px;">
+                    New here?
+                    <a href="#" onclick="switchTab('register'); return false;">Create account →</a>
                 </p>
             </div>
 
-            <!-- ══ REGISTER PANEL ══ -->
+            <!-- ════ REGISTER PANEL ════ -->
             <div id="panel-register" class="auth-panel" role="tabpanel" aria-labelledby="tab-register">
-                <p class="auth-panel-heading">Join the Protocol</p>
-                <p class="auth-panel-sub">Create your account. It only takes a minute.</p>
+                <p class="auth-panel-heading">Join The Bridge 🌉</p>
+                <p class="auth-panel-sub">Create your account — we'll verify your email with a one-time code.</p>
 
                 <div id="register-alert" class="auth-alert hidden" role="alert" aria-live="polite">
                     <span class="auth-alert-icon" aria-hidden="true"></span>
                     <span class="auth-alert-msg"></span>
                 </div>
 
-                <form id="register-form" novalidate>
-
-                    <!-- Role Selector -->
-                    <div class="form-group">
-                        <label>I am a…</label>
-                        <div class="role-selector" role="radiogroup" aria-label="Select your role">
-                            <div class="role-card selected" id="role-card-client" onclick="selectRole('client')" role="radio" aria-checked="true" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')selectRole('client')">
-                                <div class="role-card-icon" aria-hidden="true">🏢</div>
-                                <div class="role-card-label">Client</div>
-                                <div class="role-card-sub">Post tasks</div>
-                            </div>
-                            <div class="role-card" id="role-card-student" onclick="selectRole('student')" role="radio" aria-checked="false" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')selectRole('student')">
-                                <div class="role-card-icon" aria-hidden="true">🎓</div>
-                                <div class="role-card-label">Student</div>
-                                <div class="role-card-sub">Bid & earn</div>
-                            </div>
-                        </div>
-                        <input type="hidden" id="reg-role" name="role" value="client">
-                    </div>
-
+                <!-- Step 1: Collect profile info -->
+                <div id="reg-step-1">
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="reg-name">Full name *</label>
+                            <label for="reg-name">Full Name *</label>
                             <input type="text" id="reg-name" name="full_name"
-                                   placeholder="Anne Hillary"
-                                   autocomplete="name" required minlength="2" maxlength="200">
+                                   placeholder="Your full name"
+                                   autocomplete="name" required>
                         </div>
                         <div class="form-group">
                             <label for="reg-phone">Phone (optional)</label>
@@ -592,67 +588,59 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="reg-password">Password *</label>
-                        <div class="input-password-wrapper">
-                            <input type="password" id="reg-password" name="password"
-                                   placeholder="Min. 6 characters"
-                                   autocomplete="new-password"
-                                   required minlength="6"
-                                   oninput="updateStrength(this.value)">
-                            <button type="button" class="password-toggle-btn" aria-label="Toggle password visibility"
-                                    onclick="togglePassword('reg-password', this)">
-                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="strength-bar" aria-live="polite">
-                            <div class="strength-track">
-                                <div id="strength-fill" class="strength-fill"></div>
+                        <label style="margin-bottom:10px;">I am joining as *</label>
+                        <div class="role-selector">
+                            <div class="role-card selected" id="role-card-client"
+                                 role="radio" aria-checked="true" tabindex="0"
+                                 onclick="selectRole('client')" onkeypress="if(event.key==='Enter')selectRole('client')">
+                                <div class="role-card-icon">🏢</div>
+                                <div class="role-card-label">Client</div>
+                                <div class="role-card-sub">Post tasks &amp; hire</div>
                             </div>
-                            <div id="strength-label" class="strength-label"></div>
+                            <div class="role-card" id="role-card-student"
+                                 role="radio" aria-checked="false" tabindex="0"
+                                 onclick="selectRole('student')" onkeypress="if(event.key==='Enter')selectRole('student')">
+                                <div class="role-card-icon">🎓</div>
+                                <div class="role-card-label">Student</div>
+                                <div class="role-card-sub">Bid on tasks &amp; earn</div>
+                            </div>
                         </div>
+                        <input type="hidden" id="reg-role" name="role" value="client">
                     </div>
 
-                    <button type="submit" id="register-submit-btn" class="auth-submit-btn">
-                        <span class="btn-text">Create Account</span>
+                    <button type="button" id="register-submit-btn" class="auth-submit-btn">
+                        <span class="btn-text">Continue — Send Code →</span>
                         <span class="btn-spinner" aria-hidden="true"><span class="spinner-ring"></span></span>
                     </button>
-                </form>
+                </div>
+
+                <!-- Step 2: OTP verification (shown after email is sent) -->
+                <div id="reg-otp-step" style="display:none; margin-top:20px;">
+                    <div class="otp-info-box">
+                        <span class="otp-info-icon">📧</span>
+                        <span id="reg-otp-sent-to">We sent a 6-digit code to your email.</span>
+                    </div>
+                    <div class="form-group" style="margin-top:14px;">
+                        <label for="reg-otp-code">Verification Code</label>
+                        <input type="text" id="reg-otp-code"
+                               placeholder="Enter 6-digit code"
+                               inputmode="numeric"
+                               maxlength="6"
+                               autocomplete="one-time-code"
+                               style="letter-spacing:0.25em; font-size:1.3rem; text-align:center; font-weight:700;">
+                    </div>
+                    <button type="button" id="reg-otp-verify-btn" class="auth-submit-btn">
+                        <span class="btn-text">Create Account ✓</span>
+                        <span class="btn-spinner" aria-hidden="true"><span class="spinner-ring"></span></span>
+                    </button>
+                    <p style="text-align:center; margin-top:12px; font-size:0.8rem; color:var(--text-muted);">
+                        Didn't get it? <a href="#" id="reg-resend-otp-link" style="color:var(--indigo);">Resend code</a>
+                    </p>
+                </div>
 
                 <p class="auth-footer" style="margin-top:16px;">
                     Already have an account?
                     <a href="#" onclick="switchTab('login'); return false;">Sign in →</a>
-                </p>
-            </div>
-
-            <!-- ══ FORGOT PASSWORD PANEL ══ -->
-            <div id="panel-forgot" class="auth-panel" role="tabpanel" aria-labelledby="tab-forgot">
-                <p class="auth-panel-heading">Reset password</p>
-                <p class="auth-panel-sub">Enter your email and we'll send you a reset link.</p>
-
-                <div id="forgot-alert" class="auth-alert hidden" role="alert" aria-live="polite">
-                    <span class="auth-alert-icon" aria-hidden="true"></span>
-                    <span class="auth-alert-msg"></span>
-                </div>
-
-                <form id="forgot-form" novalidate>
-                    <div class="form-group">
-                        <label for="forgot-email">Email address</label>
-                        <input type="email" id="forgot-email" name="email"
-                               placeholder="you@example.com"
-                               autocomplete="email" required>
-                    </div>
-
-                    <button type="submit" id="forgot-submit-btn" class="auth-submit-btn">
-                        <span class="btn-text">Send Reset Link</span>
-                        <span class="btn-spinner" aria-hidden="true"><span class="spinner-ring"></span></span>
-                    </button>
-                </form>
-
-                <p class="auth-footer" style="margin-top:16px;">
-                    Remembered it?
-                    <a href="#" onclick="switchTab('login'); return false;">Back to Sign In →</a>
                 </p>
             </div>
 
@@ -665,182 +653,230 @@
 
     </main>
 
+    <!-- OTP info-box style (self-contained, no impact on existing CSS) -->
+    <style>
+        .otp-info-box {
+            display: flex; align-items: center; gap: 10px;
+            background: rgba(15,76,58,0.06);
+            border: 1px solid rgba(15,76,58,0.18);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            font-size: 0.85rem; color: var(--text);
+        }
+        .otp-info-icon { font-size: 1.2rem; flex-shrink: 0; }
+    </style>
+
     <script type="module">
-        import {
-            loginUser,
-            registerUser,
-            forgotPassword,
-            getSession,
-        } from "./js/auth.js";
+        import { getSession } from "./js/auth.js";
 
-        // ─── If already logged in, go straight to app ──────────────────────────
-        getSession().then(session => {
-            if (session) window.location.href = "index.html";
-        });
+        // Already signed in? go straight to the app
+        getSession().then(s => { if (s) window.location.href = "index.html"; });
 
-        // ─── Tab switching ──────────────────────────────────────────────────────
-        window.switchTab = function(tab) {
-            ["login", "register", "forgot"].forEach(t => {
-                document.getElementById(`tab-${t}`).classList.toggle("active", t === tab);
-                document.getElementById(`tab-${t}`).setAttribute("aria-selected", t === tab);
-                document.getElementById(`panel-${t}`).classList.toggle("active", t === tab);
+        // ── Helpers ────────────────────────────────────────────────────────────
+
+        async function waitForClerk(ms = 8000) {
+            const end = Date.now() + ms;
+            while (Date.now() < end) {
+                if (window.Clerk && typeof window.Clerk.load === "function") {
+                    try { await window.Clerk.load(); } catch (_) {}
+                    return;
+                }
+                await new Promise(r => setTimeout(r, 80));
+            }
+        }
+
+        function showAlert(panelId, type, msg) {
+            const el = document.getElementById(panelId + "-alert");
+            if (!el) return;
+            const icon = { error: "\u26a0\ufe0f", success: "\u2705", info: "\u2139\ufe0f" }[type] || "\u2139\ufe0f";
+            el.className = "auth-alert " + type;
+            el.querySelector(".auth-alert-icon").textContent = icon;
+            el.querySelector(".auth-alert-msg").textContent  = msg;
+        }
+        function hideAlert(id) {
+            const el = document.getElementById(id + "-alert");
+            if (el) el.className = "auth-alert hidden";
+        }
+        function setLoading(btn, v) {
+            if (!btn) return;
+            btn.disabled = v;
+            btn.classList.toggle("loading", v);
+        }
+
+        // ── Tab switching ───────────────────────────────────────────────────────
+        window.switchTab = function (tab) {
+            ["login", "register"].forEach(t => {
+                document.getElementById("tab-" + t)?.classList.toggle("active", t === tab);
+                document.getElementById("tab-" + t)?.setAttribute("aria-selected", t === tab);
+                document.getElementById("panel-" + t)?.classList.toggle("active", t === tab);
             });
         };
 
-        // ─── Password visibility toggle ─────────────────────────────────────────
-        window.togglePassword = function(inputId, btn) {
-            const input = document.getElementById(inputId);
-            const isHidden = input.type === "password";
-            input.type = isHidden ? "text" : "password";
-            btn.querySelector("svg").innerHTML = isHidden
-                ? `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>`
-                : `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
-        };
-
-        // ─── Role selector ──────────────────────────────────────────────────────
-        window.selectRole = function(role) {
+        // ── Role selector ───────────────────────────────────────────────────────
+        window.selectRole = function (role) {
             document.getElementById("reg-role").value = role;
-            document.getElementById("role-card-client").classList.toggle("selected", role === "client");
-            document.getElementById("role-card-client").setAttribute("aria-checked", role === "client");
-            document.getElementById("role-card-student").classList.toggle("selected", role === "student");
-            document.getElementById("role-card-student").setAttribute("aria-checked", role === "student");
+            ["client", "student"].forEach(r => {
+                const card = document.getElementById("role-card-" + r);
+                card.classList.toggle("selected", r === role);
+                card.setAttribute("aria-checked", r === role);
+            });
         };
 
-        // ─── Password strength ──────────────────────────────────────────────────
-        window.updateStrength = function(val) {
-            const fill  = document.getElementById("strength-fill");
-            const label = document.getElementById("strength-label");
-            let score = 0;
-            if (val.length >= 6)  score++;
-            if (val.length >= 10) score++;
-            if (/[A-Z]/.test(val)) score++;
-            if (/[0-9]/.test(val)) score++;
-            if (/[^A-Za-z0-9]/.test(val)) score++;
+        // ════════════════════════════════════════════════════════════════════════
+        //  SIGN IN  —  Email OTP
+        //  Step 1: user enters email  → Clerk sends 6-digit code
+        //  Step 2: user enters code   → Clerk verifies → session created
+        // ════════════════════════════════════════════════════════════════════════
 
-            const levels = [
-                { pct: "0%",   color: "transparent",     text: "" },
-                { pct: "25%",  color: "#f43f5e",          text: "Weak" },
-                { pct: "50%",  color: "#f59e0b",          text: "Fair" },
-                { pct: "75%",  color: "#06b6d4",          text: "Good" },
-                { pct: "100%", color: "#10b981",          text: "Strong 💪" },
-            ];
-            const lvl = levels[Math.min(score, 4)];
-            fill.style.width     = lvl.pct;
-            fill.style.background = lvl.color;
-            label.textContent    = lvl.text;
-        };
+        let signInAttempt = null;
 
-        // ─── Alert helper ───────────────────────────────────────────────────────
-        function showAlert(panelId, type, message) {
-            const el   = document.getElementById(`${panelId}-alert`);
-            const icon = { error: "⚠️", success: "✅", info: "ℹ️" }[type] || "ℹ️";
-            el.className = `auth-alert ${type}`;
-            el.querySelector(".auth-alert-icon").textContent = icon;
-            el.querySelector(".auth-alert-msg").textContent  = message;
-        }
-        function hideAlert(panelId) {
-            const el = document.getElementById(`${panelId}-alert`);
-            el.className = "auth-alert hidden";
-        }
-
-        // ─── Button loading state ───────────────────────────────────────────────
-        function setBtnLoading(btn, loading) {
-            btn.disabled = loading;
-            btn.classList.toggle("loading", loading);
-        }
-
-        // ─── LOGIN form ─────────────────────────────────────────────────────────
         document.getElementById("login-form").addEventListener("submit", async (e) => {
             e.preventDefault();
             hideAlert("login");
+            const email = document.getElementById("login-email").value.trim();
+            const btn   = document.getElementById("login-submit-btn");
+            if (!email) { showAlert("login", "error", "Please enter your email address."); return; }
 
-            const email    = document.getElementById("login-email").value.trim();
-            const password = document.getElementById("login-password").value;
-            const btn      = document.getElementById("login-submit-btn");
-
-            if (!email || !password) {
-                showAlert("login", "error", "Please fill in your email and password.");
-                return;
-            }
-
-            setBtnLoading(btn, true);
-            const { ok, message } = await loginUser(email, password);
-            setBtnLoading(btn, false);
-
-            if (ok) {
-                showAlert("login", "success", "Signed in! Redirecting…");
-                setTimeout(() => { window.location.href = "index.html"; }, 800);
-            } else {
-                showAlert("login", "error", message);
-                document.getElementById("login-password").classList.add("error");
-            }
+            setLoading(btn, true);
+            await waitForClerk();
+            try {
+                signInAttempt = await window.Clerk.client.signIn.create({
+                    identifier: email,
+                    strategy:   "email_code",
+                });
+                await signInAttempt.prepareFirstFactor({
+                    strategy:       "email_code",
+                    emailAddressId: signInAttempt.supportedFirstFactors
+                                        .find(f => f.strategy === "email_code")?.emailAddressId,
+                });
+                // Show OTP entry step
+                document.getElementById("login-form").style.display = "none";
+                document.getElementById("otp-step").style.display   = "block";
+                document.getElementById("otp-sent-to").textContent  = "Code sent to " + email;
+                document.getElementById("otp-code").focus();
+            } catch (err) {
+                showAlert("login", "error",
+                    err.errors?.[0]?.longMessage || err.message || "Could not send code. Please try again.");
+            } finally { setLoading(btn, false); }
         });
 
-        document.getElementById("login-password").addEventListener("input", () => {
-            document.getElementById("login-password").classList.remove("error");
+        document.getElementById("otp-verify-btn").addEventListener("click", async () => {
+            const code = document.getElementById("otp-code").value.replace(/\D/g, "");
+            const btn  = document.getElementById("otp-verify-btn");
+            hideAlert("login");
+            if (code.length < 6) { showAlert("login", "error", "Please enter the 6-digit code."); return; }
+            if (!signInAttempt) { showAlert("login", "error", "Session expired. Please start again."); return; }
+
+            setLoading(btn, true);
+            try {
+                const res = await signInAttempt.attemptFirstFactor({ strategy: "email_code", code });
+                if (res.status === "complete") {
+                    await window.Clerk.setActive({ session: res.createdSessionId });
+                    showAlert("login", "success", "Verified! Redirecting to your dashboard\u2026");
+                    setTimeout(() => { window.location.href = "index.html"; }, 700);
+                } else {
+                    showAlert("login", "error", "Verification incomplete. Please try again.");
+                }
+            } catch (err) {
+                showAlert("login", "error",
+                    err.errors?.[0]?.longMessage || "Invalid code. Please try again.");
+            } finally { setLoading(btn, false); }
         });
 
-        // ─── REGISTER form ──────────────────────────────────────────────────────
-        document.getElementById("register-form").addEventListener("submit", async (e) => {
+        document.getElementById("resend-otp-link").addEventListener("click", async (e) => {
             e.preventDefault();
-            hideAlert("register");
+            if (!signInAttempt) return;
+            try {
+                await signInAttempt.prepareFirstFactor({
+                    strategy:       "email_code",
+                    emailAddressId: signInAttempt.supportedFirstFactors
+                                        .find(f => f.strategy === "email_code")?.emailAddressId,
+                });
+                showAlert("login", "info", "A new code has been sent to your email.");
+            } catch (err) { showAlert("login", "error", "Could not resend. Please refresh and try again."); }
+        });
 
+        // Auto-submit when 6 digits entered
+        document.getElementById("otp-code").addEventListener("input", (e) => {
+            e.target.value = e.target.value.replace(/\D/g, "");
+            if (e.target.value.length === 6) document.getElementById("otp-verify-btn").click();
+        });
+
+        // ════════════════════════════════════════════════════════════════════════
+        //  REGISTER  —  Email OTP
+        //  Step 1: collect name/email/role  → Clerk sends code
+        //  Step 2: enter code → session created → Supabase profile created
+        // ════════════════════════════════════════════════════════════════════════
+
+        let signUpAttempt = null;
+
+        document.getElementById("register-submit-btn").addEventListener("click", async () => {
+            hideAlert("register");
             const fullName = document.getElementById("reg-name").value.trim();
-            const phone    = document.getElementById("reg-phone").value.trim();
             const email    = document.getElementById("reg-email").value.trim();
-            const password = document.getElementById("reg-password").value;
-            const role     = document.getElementById("reg-role").value;
             const btn      = document.getElementById("register-submit-btn");
 
-            if (!fullName || !email || !password) {
-                showAlert("register", "error", "Please fill in all required fields.");
-                return;
-            }
-            if (password.length < 6) {
-                showAlert("register", "error", "Password must be at least 6 characters.");
-                return;
-            }
+            if (!fullName) { showAlert("register", "error", "Please enter your full name."); return; }
+            if (!email || !email.includes("@")) { showAlert("register", "error", "Please enter a valid email address."); return; }
 
-            setBtnLoading(btn, true);
-            const { ok, message } = await registerUser(email, password, fullName, role, phone || null);
-            setBtnLoading(btn, false);
+            setLoading(btn, true);
+            await waitForClerk();
+            try {
+                signUpAttempt = await window.Clerk.client.signUp.create({ emailAddress: email });
+                await signUpAttempt.prepareEmailAddressVerification({ strategy: "email_code" });
 
-            if (ok) {
-                showAlert("register", "success", message);
-                // If auto-confirmed, redirect; otherwise stay and show the message
-                setTimeout(async () => {
+                document.getElementById("reg-step-1").style.display   = "none";
+                document.getElementById("reg-otp-step").style.display = "block";
+                document.getElementById("reg-otp-sent-to").textContent = "Code sent to " + email;
+                document.getElementById("reg-otp-code").focus();
+            } catch (err) {
+                const msg = err.errors?.[0]?.longMessage || err.message || "Could not send code.";
+                showAlert("register", "error",
+                    (msg.toLowerCase().includes("already") || msg.toLowerCase().includes("taken"))
+                        ? "An account with this email already exists. Try signing in instead."
+                        : msg);
+            } finally { setLoading(btn, false); }
+        });
+
+        document.getElementById("reg-otp-verify-btn").addEventListener("click", async () => {
+            const code = document.getElementById("reg-otp-code").value.replace(/\D/g, "");
+            const btn  = document.getElementById("reg-otp-verify-btn");
+            hideAlert("register");
+            if (code.length < 6) { showAlert("register", "error", "Please enter the 6-digit code."); return; }
+
+            setLoading(btn, true);
+            try {
+                const res = await signUpAttempt.attemptEmailAddressVerification({ code });
+                if (res.status === "complete") {
+                    await window.Clerk.setActive({ session: res.createdSessionId });
+                    // Trigger Supabase profile creation (auth.js resolveProfile)
                     const { getSession } = await import("./js/auth.js");
-                    const session = await getSession();
-                    if (session) window.location.href = "index.html";
-                }, 1200);
-            } else {
-                showAlert("register", "error", message);
-            }
+                    await getSession();
+                    showAlert("register", "success", "Account created! Welcome to The Bridge \ud83c\udf89");
+                    setTimeout(() => { window.location.href = "index.html"; }, 900);
+                } else {
+                    showAlert("register", "error", "Verification incomplete. Please try again.");
+                }
+            } catch (err) {
+                showAlert("register", "error",
+                    err.errors?.[0]?.longMessage || "Invalid code. Please try again.");
+            } finally { setLoading(btn, false); }
         });
 
-        // ─── FORGOT PASSWORD form ───────────────────────────────────────────────
-        document.getElementById("forgot-form").addEventListener("submit", async (e) => {
+        document.getElementById("reg-resend-otp-link").addEventListener("click", async (e) => {
             e.preventDefault();
-            hideAlert("forgot");
-
-            const email = document.getElementById("forgot-email").value.trim();
-            const btn   = document.getElementById("forgot-submit-btn");
-
-            if (!email) {
-                showAlert("forgot", "error", "Please enter your email address.");
-                return;
-            }
-
-            setBtnLoading(btn, true);
-            const { ok, message } = await forgotPassword(email);
-            setBtnLoading(btn, false);
-
-            showAlert("forgot", ok ? "success" : "error", message);
-            if (ok) {
-                btn.disabled = true;
-                btn.querySelector(".btn-text").textContent = "Email Sent ✓";
-            }
+            if (!signUpAttempt) return;
+            try {
+                await signUpAttempt.prepareEmailAddressVerification({ strategy: "email_code" });
+                showAlert("register", "info", "A new code has been sent to your email.");
+            } catch (err) { showAlert("register", "error", "Could not resend. Please refresh and try again."); }
         });
+
+        document.getElementById("reg-otp-code").addEventListener("input", (e) => {
+            e.target.value = e.target.value.replace(/\D/g, "");
+            if (e.target.value.length === 6) document.getElementById("reg-otp-verify-btn").click();
+        });
+
     </script>
 
 </body>
