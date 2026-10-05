@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In — The Bridge Protocol</title>
-    <meta name="description" content="Sign in or create an account on The Bridge Protocol — the campus micro-task marketplace connecting clients and skilled students.">
+    <meta name="description" content="Sign in or create an account on The Bridge Protocol — the campus micro-task marketplace.">
     <meta name="theme-color" content="#fbf9f5">
     <meta name="robots" content="noindex">
 
-    <!-- Clerk Auth SDK (email OTP) -->
+    <!-- Clerk Auth SDK -->
     <script
         async
         crossorigin="anonymous"
@@ -23,11 +23,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
-        /* ── Reset & Base ─────────────────────────────── */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            /* Cream & Forest Emerald palette */
             --bg:        #fbf9f5;
             --bg-card:   #ffffff;
             --border:    #e6dfd3;
@@ -36,14 +34,10 @@
             --text-muted:#78736a;
             --input-bg:  #fbf9f5;
             --input-h:   #f4f0e8;
-            /* Forest Emerald brand */
             --indigo:    #0f4c3a;
             --indigo-d:  #0b3a2c;
             --cyan:      #1b6348;
-            --emerald:   #1b6348;
             --rose:      #b91c1c;
-            --amber:     #b45309;
-            /* Layout */
             --radius:    16px;
             --radius-sm: 10px;
             --shadow:    0 20px 60px rgba(26,25,23,0.12);
@@ -51,422 +45,132 @@
             --transition:0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        html, body {
-            height: 100%;
-            font-family: var(--font);
-            background: var(--bg);
-            color: var(--text);
-            overflow-x: hidden;
-        }
+        html, body { height: 100%; font-family: var(--font); background: var(--bg); color: var(--text); overflow-x: hidden; }
 
-        /* ── Warm canvas background ───────────────────── */
         .auth-bg {
             position: fixed; inset: 0;
-            background:
-                radial-gradient(ellipse 70% 60% at 20% 0%, rgba(15,76,58,0.07), transparent),
-                radial-gradient(ellipse 60% 50% at 80% 100%, rgba(27,99,72,0.05), transparent),
-                var(--bg);
+            background: radial-gradient(ellipse 70% 60% at 20% 0%, rgba(15,76,58,0.07), transparent),
+                        radial-gradient(ellipse 60% 50% at 80% 100%, rgba(27,99,72,0.05), transparent),
+                        var(--bg);
             z-index: 0;
         }
-
-        /* Soft floating orbs — warm tones */
-        .orb {
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(90px);
-            opacity: 0.35;
-            animation: float 14s ease-in-out infinite;
-            pointer-events: none;
-            z-index: 0;
-        }
-        .orb-1 { width: 380px; height: 380px; background: rgba(15,76,58,0.18);  top: -120px; left: -80px;  animation-delay: 0s; }
+        .orb { position: fixed; border-radius: 50%; filter: blur(90px); opacity: 0.35; animation: float 14s ease-in-out infinite; pointer-events: none; z-index: 0; }
+        .orb-1 { width: 380px; height: 380px; background: rgba(15,76,58,0.18); top: -120px; left: -80px; animation-delay: 0s; }
         .orb-2 { width: 280px; height: 280px; background: rgba(230,223,211,0.6); bottom: -60px; right: -60px; animation-delay: -5s; }
-        .orb-3 { width: 180px; height: 180px; background: rgba(15,76,58,0.1);   top: 55%; left: 65%; animation-delay: -10s; }
-
-        /* Grid overlay — warm subtle */
+        .orb-3 { width: 180px; height: 180px; background: rgba(15,76,58,0.1); top: 55%; left: 65%; animation-delay: -10s; }
         .grid-overlay {
             position: fixed; inset: 0; z-index: 0; pointer-events: none;
-            background-image:
-                linear-gradient(rgba(15,76,58,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(15,76,58,0.03) 1px, transparent 1px);
+            background-image: linear-gradient(rgba(15,76,58,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(15,76,58,0.03) 1px, transparent 1px);
             background-size: 48px 48px;
         }
+        @keyframes float { 0%, 100% { transform: translateY(0) scale(1); } 33% { transform: translateY(-28px) scale(1.04); } 66% { transform: translateY(18px) scale(0.96); } }
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0) scale(1); }
-            33%       { transform: translateY(-28px) scale(1.04); }
-            66%       { transform: translateY(18px) scale(0.96); }
-        }
+        .auth-page { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px; }
 
-        /* ── Page Layout ──────────────────────────────── */
-        .auth-page {
-            position: relative; z-index: 1;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 24px 16px;
-        }
+        /* Logo */
+        .auth-logo { display: flex; align-items: center; gap: 14px; margin-bottom: 32px; text-decoration: none; }
+        .auth-logo img { width: 52px; height: 52px; object-fit: contain; border-radius: 10px; }
+        .auth-logo-text h1 { font-size: 1.1rem; font-weight: 800; letter-spacing: 0.1em; color: var(--text); }
+        .auth-logo-text span { font-size: 0.65rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--indigo); }
 
-        /* ── Logo ─────────────────────────────────────── */
-        .auth-logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 32px;
-            text-decoration: none;
-        }
-        .auth-logo-icon {
-            width: 44px; height: 44px;
-            background: var(--indigo);
-            border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 8px 24px rgba(15,76,58,0.3);
-        }
-        .auth-logo-icon svg { display: block; }
-        .auth-logo-text h1 {
-            font-size: 1.1rem;
-            font-weight: 800;
-            letter-spacing: 0.1em;
-            color: var(--text);
-        }
-        .auth-logo-text span {
-            font-size: 0.65rem;
-            font-weight: 500;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: var(--indigo);
-        }
+        /* Card */
+        .auth-card { width: 100%; max-width: 440px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 24px; padding: 36px 36px 32px; box-shadow: var(--shadow); animation: cardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+        @keyframes cardIn { from { opacity: 0; transform: translateY(24px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
-        /* ── Card ─────────────────────────────────────── */
-        .auth-card {
-            width: 100%; max-width: 440px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 36px 36px 32px;
-            box-shadow: var(--shadow);
-            animation: cardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-        }
+        /* Tabs */
+        .auth-tabs { display: flex; background: #f4f0e8; border-radius: var(--radius-sm); padding: 4px; gap: 2px; margin-bottom: 28px; }
+        .auth-tab-btn { flex: 1; padding: 9px 6px; border: none; border-radius: 7px; background: transparent; color: var(--text-muted); font-family: var(--font); font-size: 0.82rem; font-weight: 500; cursor: pointer; transition: var(--transition); white-space: nowrap; }
+        .auth-tab-btn.active { background: var(--indigo); color: #fff; box-shadow: 0 4px 12px rgba(15,76,58,0.28); }
+        .auth-tab-btn:not(.active):hover { color: var(--text); background: #ede8de; }
 
-        @keyframes cardIn {
-            from { opacity: 0; transform: translateY(24px) scale(0.97); }
-            to   { opacity: 1; transform: translateY(0)    scale(1); }
-        }
-
-        /* ── Tab Switcher ─────────────────────────────── */
-        .auth-tabs {
-            display: flex;
-            background: #f4f0e8;
-            border-radius: var(--radius-sm);
-            padding: 4px;
-            gap: 2px;
-            margin-bottom: 28px;
-        }
-        .auth-tab-btn {
-            flex: 1;
-            padding: 9px 6px;
-            border: none;
-            border-radius: 7px;
-            background: transparent;
-            color: var(--text-muted);
-            font-family: var(--font);
-            font-size: 0.82rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: var(--transition);
-            white-space: nowrap;
-        }
-        .auth-tab-btn.active {
-            background: var(--indigo);
-            color: #fff;
-            box-shadow: 0 4px 12px rgba(15,76,58,0.28);
-        }
-        .auth-tab-btn:not(.active):hover {
-            color: var(--text);
-            background: #ede8de;
-        }
-
-        /* ── Tab Panels ───────────────────────────────── */
+        /* Panels */
         .auth-panel { display: none; }
         .auth-panel.active { display: block; animation: panelIn 0.3s ease both; }
+        @keyframes panelIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-        @keyframes panelIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
+        .auth-panel-heading { font-size: 1.45rem; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+        .auth-panel-sub { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; }
 
-        .auth-panel-heading {
-            font-size: 1.45rem;
-            font-weight: 700;
-            margin-bottom: 4px;
-            color: var(--text);
-        }
-        .auth-panel-sub {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-bottom: 24px;
-            line-height: 1.5;
-        }
-
-        /* ── Form Elements ────────────────────────────── */
+        /* Forms */
         .form-row { display: flex; gap: 12px; }
         .form-row .form-group { flex: 1; }
-
         .form-group { margin-bottom: 16px; }
-        .form-group label {
-            display: block;
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-            letter-spacing: 0.02em;
-        }
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 11px 14px;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            color: var(--text);
-            font-family: var(--font);
-            font-size: 0.9rem;
-            outline: none;
-            transition: var(--transition);
-            appearance: none;
-            -webkit-appearance: none;
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; letter-spacing: 0.02em; }
+        .form-group input {
+            width: 100%; padding: 11px 14px; background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-sm);
+            color: var(--text); font-family: var(--font); font-size: 0.9rem; outline: none; transition: var(--transition);
         }
         .form-group input::placeholder { color: #a89f96; }
-        .form-group input:focus,
-        .form-group select:focus {
-            border-color: var(--indigo);
-            background: var(--input-h);
-            box-shadow: 0 0 0 3px rgba(15,76,58,0.1);
-        }
-        .form-group input.error,
-        .form-group select.error {
-            border-color: var(--rose);
-            box-shadow: 0 0 0 3px rgba(185,28,28,0.08);
-        }
-        .form-group select option { background: #fff; color: var(--text); }
+        .form-group input:focus { border-color: var(--indigo); background: var(--input-h); box-shadow: 0 0 0 3px rgba(15,76,58,0.1); }
+        .form-group input.error { border-color: var(--rose); box-shadow: 0 0 0 3px rgba(185,28,28,0.08); }
 
-        /* Password field with toggle */
+        /* Password wrapper */
         .input-password-wrapper { position: relative; }
         .input-password-wrapper input { padding-right: 44px; }
-        .password-toggle-btn {
-            position: absolute; right: 12px; top: 50%;
-            transform: translateY(-50%);
-            background: none; border: none; cursor: pointer;
-            color: var(--text-muted); padding: 4px;
-            display: flex; align-items: center;
-            transition: color 0.2s;
-        }
+        .password-toggle-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; display: flex; align-items: center; transition: color 0.2s; }
         .password-toggle-btn:hover { color: var(--text); }
 
-        /* Select wrapper */
-        .select-wrapper { position: relative; }
-        .select-wrapper::after {
-            content: '▾';
-            position: absolute; right: 14px; top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-            pointer-events: none;
-            font-size: 0.8rem;
-        }
+        /* Password strength */
+        .strength-bar { margin-top: 6px; }
+        .strength-track { height: 3px; border-radius: 99px; background: #e6dfd3; overflow: hidden; }
+        .strength-fill { height: 100%; border-radius: 99px; transition: width 0.4s ease, background 0.4s ease; width: 0%; }
+        .strength-label { font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; }
 
         /* Role cards */
         .role-selector { display: flex; gap: 10px; margin-bottom: 16px; }
-        .role-card {
-            flex: 1;
-            padding: 12px 10px;
-            background: #fbf9f5;
-            border: 2px solid var(--border);
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            text-align: center;
-            transition: var(--transition);
-        }
+        .role-card { flex: 1; padding: 12px 10px; background: #fbf9f5; border: 2px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; text-align: center; transition: var(--transition); }
         .role-card:hover { border-color: var(--border-h); background: #f4f0e8; }
-        .role-card.selected {
-            border-color: var(--indigo);
-            background: rgba(15,76,58,0.06);
-            box-shadow: 0 0 0 3px rgba(15,76,58,0.1);
-        }
+        .role-card.selected { border-color: var(--indigo); background: rgba(15,76,58,0.06); box-shadow: 0 0 0 3px rgba(15,76,58,0.1); }
         .role-card-icon { font-size: 1.4rem; margin-bottom: 4px; }
         .role-card-label { font-size: 0.8rem; font-weight: 600; color: var(--text); }
         .role-card-sub { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
-        input[name="role"] { display: none; }
 
-        /* Password strength bar */
-        .strength-bar { margin-top: 6px; }
-        .strength-track {
-            height: 3px; border-radius: 99px;
-            background: #e6dfd3;
-            overflow: hidden;
-        }
-        .strength-fill {
-            height: 100%; border-radius: 99px;
-            transition: width 0.4s ease, background 0.4s ease;
-            width: 0%;
-        }
-        .strength-label {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
-
-        /* ── Forgot password link ─────────────────────── */
-        .forgot-link {
-            display: block;
-            text-align: right;
-            font-size: 0.78rem;
-            color: var(--indigo);
-            text-decoration: none;
-            margin-top: -8px;
-            margin-bottom: 20px;
-            transition: color 0.2s;
-        }
+        /* Forgot link */
+        .forgot-link { display: block; text-align: right; font-size: 0.78rem; color: var(--indigo); text-decoration: none; margin-top: -8px; margin-bottom: 20px; transition: color 0.2s; }
         .forgot-link:hover { color: var(--cyan); text-decoration: underline; }
 
-        /* ── Submit Button ────────────────────────────── */
-        .auth-submit-btn {
-            width: 100%;
-            padding: 13px;
-            background: var(--indigo);
-            border: none;
-            border-radius: var(--radius-sm);
-            color: #fff;
-            font-family: var(--font);
-            font-size: 0.95rem;
-            font-weight: 700;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            transition: var(--transition);
-            box-shadow: 0 4px 16px rgba(15,76,58,0.28);
-            margin-top: 4px;
-        }
-        .auth-submit-btn::before {
-            content: '';
-            position: absolute; inset: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent);
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
+        /* Buttons */
+        .auth-submit-btn { width: 100%; padding: 13px; background: var(--indigo); border: none; border-radius: var(--radius-sm); color: #fff; font-family: var(--font); font-size: 0.95rem; font-weight: 700; cursor: pointer; position: relative; overflow: hidden; transition: var(--transition); box-shadow: 0 4px 16px rgba(15,76,58,0.28); margin-top: 4px; }
+        .auth-submit-btn::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent); opacity: 0; transition: opacity 0.2s; }
         .auth-submit-btn:hover:not(:disabled)::before { opacity: 1; }
         .auth-submit-btn:hover:not(:disabled) { background: var(--indigo-d); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(15,76,58,0.36); }
         .auth-submit-btn:active:not(:disabled) { transform: translateY(0); }
         .auth-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
         .auth-submit-btn.loading .btn-text { opacity: 0; }
         .auth-submit-btn.loading .btn-spinner { opacity: 1; }
-
-        .btn-text, .btn-spinner {
-            transition: opacity 0.2s;
-        }
-        .btn-spinner {
-            position: absolute; inset: 0;
-            display: flex; align-items: center; justify-content: center;
-            opacity: 0;
-        }
-        .spinner-ring {
-            width: 20px; height: 20px;
-            border: 2px solid rgba(255,255,255,0.35);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-        }
+        .btn-text, .btn-spinner { transition: opacity 0.2s; }
+        .btn-spinner { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; }
+        .spinner-ring { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ── Alert / Feedback ─────────────────────────── */
-        .auth-alert {
-            border-radius: var(--radius-sm);
-            padding: 11px 14px;
-            font-size: 0.82rem;
-            line-height: 1.5;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            animation: alertIn 0.3s ease both;
-        }
-        @keyframes alertIn {
-            from { opacity: 0; transform: translateY(-6px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
+        /* Alerts */
+        .auth-alert { border-radius: var(--radius-sm); padding: 11px 14px; font-size: 0.82rem; line-height: 1.5; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 8px; animation: alertIn 0.3s ease both; }
+        @keyframes alertIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
         .auth-alert.hidden { display: none; }
-        .auth-alert.error {
-            background: rgba(185,28,28,0.07);
-            border: 1px solid rgba(185,28,28,0.2);
-            color: #b91c1c;
-        }
-        .auth-alert.success {
-            background: rgba(15,76,58,0.08);
-            border: 1px solid rgba(15,76,58,0.22);
-            color: #0f4c3a;
-        }
-        .auth-alert.info {
-            background: rgba(15,76,58,0.06);
-            border: 1px solid rgba(15,76,58,0.18);
-            color: #1b6348;
-        }
+        .auth-alert.error { background: rgba(185,28,28,0.07); border: 1px solid rgba(185,28,28,0.2); color: #b91c1c; }
+        .auth-alert.success { background: rgba(15,76,58,0.08); border: 1px solid rgba(15,76,58,0.22); color: #0f4c3a; }
+        .auth-alert.info { background: rgba(15,76,58,0.06); border: 1px solid rgba(15,76,58,0.18); color: #1b6348; }
         .auth-alert-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
 
-        /* ── Divider ──────────────────────────────────── */
-        .auth-divider {
-            display: flex; align-items: center;
-            gap: 12px;
-            margin: 20px 0;
-            color: var(--text-muted);
-            font-size: 0.75rem;
-        }
-        .auth-divider::before, .auth-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border);
-        }
+        /* OTP info box */
+        .otp-info-box { display: flex; align-items: center; gap: 10px; background: rgba(15,76,58,0.06); border: 1px solid rgba(15,76,58,0.18); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 0.85rem; color: var(--text); margin-bottom: 16px; }
+        .otp-info-icon { font-size: 1.2rem; flex-shrink: 0; }
+        .otp-code-input { letter-spacing: 0.25em; font-size: 1.3rem; text-align: center; font-weight: 700; }
 
-        /* ── Footer ───────────────────────────────────── */
-        .auth-footer {
-            text-align: center;
-            margin-top: 24px;
-            font-size: 0.78rem;
-            color: var(--text-muted);
-        }
-        .auth-footer a {
-            color: var(--indigo);
-            text-decoration: none;
-            font-weight: 600;
-        }
+        /* Footer */
+        .auth-footer { text-align: center; margin-top: 20px; font-size: 0.78rem; color: var(--text-muted); }
+        .auth-footer a { color: var(--indigo); text-decoration: none; font-weight: 600; }
         .auth-footer a:hover { color: var(--cyan); text-decoration: underline; }
 
-        /* ── Back to app link ─────────────────────────── */
-        .auth-back-link {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            text-decoration: none;
-            margin-top: 20px;
-            transition: color 0.2s;
-        }
+        /* Back link */
+        .auth-back-link { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text-muted); text-decoration: none; margin-top: 20px; transition: color 0.2s; }
         .auth-back-link:hover { color: var(--text); }
-        .auth-back-link svg { flex-shrink: 0; }
 
-        /* ── Responsive ───────────────────────────────── */
-        @media (max-width: 480px) {
-            .auth-card { padding: 28px 22px 24px; border-radius: 18px; }
-            .form-row { flex-direction: column; gap: 0; }
-        }
+        @media (max-width: 480px) { .auth-card { padding: 28px 22px 24px; border-radius: 18px; } .form-row { flex-direction: column; gap: 0; } }
     </style>
 </head>
 
 <body>
-
-    <!-- Background -->
     <div class="auth-bg" aria-hidden="true"></div>
     <div class="orb orb-1" aria-hidden="true"></div>
     <div class="orb orb-2" aria-hidden="true"></div>
@@ -477,83 +181,60 @@
 
         <!-- Logo -->
         <a href="index.html" class="auth-logo" aria-label="The Bridge Protocol – go to homepage">
-            <div class="auth-logo-icon" aria-hidden="true">
-                <svg width="24" height="24" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14 2L26 8V20L14 26L2 20V8L14 2Z" stroke="white" stroke-width="1.5" fill="none" opacity="0.8"/>
-                    <path d="M14 8L20 11V17L14 20L8 17V11L14 8Z" fill="white" opacity="0.9"/>
-                </svg>
-            </div>
+            <img src="assets/logo.png" alt="The Bridge Protocol logo">
             <div class="auth-logo-text">
                 <h1>THE BRIDGE</h1>
-                <span>Protocol</span>
+                <span>Campus Skills Platform</span>
             </div>
         </a>
 
-        <!-- Card -->
+        <!-- Auth Card -->
         <div class="auth-card" role="region" aria-label="Authentication">
 
-            <!-- Tab Switcher -->
+            <!-- Tabs -->
             <div class="auth-tabs" role="tablist" aria-label="Authentication options">
                 <button id="tab-login"    class="auth-tab-btn active" role="tab" aria-selected="true"  aria-controls="panel-login"    onclick="switchTab('login')">Log In</button>
                 <button id="tab-register" class="auth-tab-btn"        role="tab" aria-selected="false" aria-controls="panel-register" onclick="switchTab('register')">Sign Up</button>
                 <button id="tab-forgot"   class="auth-tab-btn"        role="tab" aria-selected="false" aria-controls="panel-forgot"   onclick="switchTab('forgot')">Reset</button>
             </div>
 
-            <!-- ════ EMAIL + OTP SIGN-IN PANEL ════ -->
+            <!-- ══════ LOGIN PANEL — Email + Password ══════ -->
             <div id="panel-login" class="auth-panel active" role="tabpanel" aria-labelledby="tab-login">
                 <p class="auth-panel-heading">Welcome back 👋</p>
-                <p class="auth-panel-sub">Enter your email — we'll send a one-time code to verify it's you.</p>
+                <p class="auth-panel-sub">Sign in with your email and password.</p>
 
                 <div id="login-alert" class="auth-alert hidden" role="alert" aria-live="polite">
                     <span class="auth-alert-icon" aria-hidden="true"></span>
                     <span class="auth-alert-msg"></span>
                 </div>
 
-                <!-- Step 1: Enter email -->
                 <form id="login-form" novalidate>
                     <div class="form-group">
                         <label for="login-email">Email address</label>
-                        <input type="email" id="login-email" name="email"
-                               placeholder="you@example.com"
-                               autocomplete="email" required>
+                        <input type="email" id="login-email" name="email" placeholder="you@example.com" autocomplete="email" required>
                     </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <div class="input-password-wrapper">
+                            <input type="password" id="login-password" name="password" placeholder="Your password" autocomplete="current-password" required>
+                            <button type="button" class="password-toggle-btn" aria-label="Toggle password visibility" onclick="togglePwd('login-password',this)">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <a href="#" class="forgot-link" onclick="switchTab('forgot'); return false;">Forgot password?</a>
                     <button type="submit" id="login-submit-btn" class="auth-submit-btn">
-                        <span class="btn-text">Send Verification Code →</span>
+                        <span class="btn-text">Sign In →</span>
                         <span class="btn-spinner" aria-hidden="true"><span class="spinner-ring"></span></span>
                     </button>
                 </form>
 
-                <!-- Step 2: Enter OTP code (shown after email is sent) -->
-                <div id="otp-step" style="display:none; margin-top:20px;">
-                    <div class="otp-info-box">
-                        <span class="otp-info-icon">📧</span>
-                        <span id="otp-sent-to">We sent a 6-digit code to your email.</span>
-                    </div>
-                    <div class="form-group" style="margin-top:14px;">
-                        <label for="otp-code">Verification Code</label>
-                        <input type="text" id="otp-code"
-                               placeholder="Enter 6-digit code"
-                               inputmode="numeric"
-                               maxlength="6"
-                               autocomplete="one-time-code"
-                               style="letter-spacing:0.25em; font-size:1.3rem; text-align:center; font-weight:700;">
-                    </div>
-                    <button type="button" id="otp-verify-btn" class="auth-submit-btn">
-                        <span class="btn-text">Verify & Sign In ✓</span>
-                        <span class="btn-spinner" aria-hidden="true"><span class="spinner-ring"></span></span>
-                    </button>
-                    <p style="text-align:center; margin-top:12px; font-size:0.8rem; color:var(--text-muted);">
-                        Didn't get it? <a href="#" id="resend-otp-link" style="color:var(--indigo);">Resend code</a>
-                    </p>
-                </div>
-
                 <p class="auth-footer" style="margin-top:18px;">
-                    New here?
-                    <a href="#" onclick="switchTab('register'); return false;">Create account →</a>
+                    New here? <a href="#" onclick="switchTab('register'); return false;">Create account →</a>
                 </p>
             </div>
 
-            <!-- ════ REGISTER PANEL ════ -->
+            <!-- ══════ REGISTER PANEL — Name + Email + Password + OTP Verify ══════ -->
             <div id="panel-register" class="auth-panel" role="tabpanel" aria-labelledby="tab-register">
                 <p class="auth-panel-heading">Join The Bridge 🌉</p>
                 <p class="auth-panel-sub">Create your account — we'll verify your email with a one-time code.</p>
@@ -563,84 +244,130 @@
                     <span class="auth-alert-msg"></span>
                 </div>
 
-                <!-- Step 1: Collect profile info -->
+                <!-- Step 1: Profile details -->
                 <div id="reg-step-1">
                     <div class="form-row">
                         <div class="form-group">
                             <label for="reg-name">Full Name *</label>
-                            <input type="text" id="reg-name" name="full_name"
-                                   placeholder="Your full name"
-                                   autocomplete="name" required>
+                            <input type="text" id="reg-name" placeholder="Your full name" autocomplete="name">
                         </div>
                         <div class="form-group">
                             <label for="reg-phone">Phone (optional)</label>
-                            <input type="tel" id="reg-phone" name="phone"
-                                   placeholder="+256 700 000 000"
-                                   autocomplete="tel">
+                            <input type="tel" id="reg-phone" placeholder="+256 700 000 000" autocomplete="tel">
                         </div>
                     </div>
-
                     <div class="form-group">
                         <label for="reg-email">Email address *</label>
-                        <input type="email" id="reg-email" name="email"
-                               placeholder="you@example.com"
-                               autocomplete="email" required>
+                        <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email">
                     </div>
-
+                    <div class="form-group">
+                        <label for="reg-password">Password * <span style="font-weight:400;color:#a89f96">(min. 8 characters)</span></label>
+                        <div class="input-password-wrapper">
+                            <input type="password" id="reg-password" placeholder="Create a strong password" autocomplete="new-password" oninput="checkStrength(this.value)">
+                            <button type="button" class="password-toggle-btn" aria-label="Toggle password visibility" onclick="togglePwd('reg-password',this)">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                        </div>
+                        <div class="strength-bar" aria-live="polite">
+                            <div class="strength-track"><div id="strength-fill" class="strength-fill"></div></div>
+                            <div id="strength-label" class="strength-label"></div>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label style="margin-bottom:10px;">I am joining as *</label>
                         <div class="role-selector">
-                            <div class="role-card selected" id="role-card-client"
-                                 role="radio" aria-checked="true" tabindex="0"
-                                 onclick="selectRole('client')" onkeypress="if(event.key==='Enter')selectRole('client')">
+                            <div class="role-card selected" id="role-card-client" role="radio" aria-checked="true" tabindex="0" onclick="selectRole('client')" onkeypress="if(event.key==='Enter')selectRole('client')">
                                 <div class="role-card-icon">🏢</div>
                                 <div class="role-card-label">Client</div>
-                                <div class="role-card-sub">Post tasks &amp; hire</div>
+                                <div class="role-card-sub">Post tasks & hire</div>
                             </div>
-                            <div class="role-card" id="role-card-student"
-                                 role="radio" aria-checked="false" tabindex="0"
-                                 onclick="selectRole('student')" onkeypress="if(event.key==='Enter')selectRole('student')">
+                            <div class="role-card" id="role-card-student" role="radio" aria-checked="false" tabindex="0" onclick="selectRole('student')" onkeypress="if(event.key==='Enter')selectRole('student')">
                                 <div class="role-card-icon">🎓</div>
                                 <div class="role-card-label">Student</div>
-                                <div class="role-card-sub">Bid on tasks &amp; earn</div>
+                                <div class="role-card-sub">Bid on tasks & earn</div>
                             </div>
                         </div>
-                        <input type="hidden" id="reg-role" name="role" value="client">
+                        <input type="hidden" id="reg-role" value="client">
                     </div>
-
                     <button type="button" id="register-submit-btn" class="auth-submit-btn">
                         <span class="btn-text">Continue — Send Code →</span>
                         <span class="btn-spinner" aria-hidden="true"><span class="spinner-ring"></span></span>
                     </button>
                 </div>
 
-                <!-- Step 2: OTP verification (shown after email is sent) -->
-                <div id="reg-otp-step" style="display:none; margin-top:20px;">
+                <!-- Step 2: OTP verification -->
+                <div id="reg-otp-step" style="display:none;">
                     <div class="otp-info-box">
                         <span class="otp-info-icon">📧</span>
                         <span id="reg-otp-sent-to">We sent a 6-digit code to your email.</span>
                     </div>
-                    <div class="form-group" style="margin-top:14px;">
+                    <div class="form-group">
                         <label for="reg-otp-code">Verification Code</label>
-                        <input type="text" id="reg-otp-code"
-                               placeholder="Enter 6-digit code"
-                               inputmode="numeric"
-                               maxlength="6"
-                               autocomplete="one-time-code"
-                               style="letter-spacing:0.25em; font-size:1.3rem; text-align:center; font-weight:700;">
+                        <input type="text" id="reg-otp-code" class="otp-code-input" placeholder="• • • • • •" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
                     </div>
                     <button type="button" id="reg-otp-verify-btn" class="auth-submit-btn">
                         <span class="btn-text">Create Account ✓</span>
                         <span class="btn-spinner" aria-hidden="true"><span class="spinner-ring"></span></span>
                     </button>
                     <p style="text-align:center; margin-top:12px; font-size:0.8rem; color:var(--text-muted);">
-                        Didn't get it? <a href="#" id="reg-resend-otp-link" style="color:var(--indigo);">Resend code</a>
+                        Didn't get it? <a href="#" id="reg-resend-link" style="color:var(--indigo);">Resend code</a>
                     </p>
                 </div>
 
+                <p class="auth-footer">
+                    Already have an account? <a href="#" onclick="switchTab('login'); return false;">Sign in →</a>
+                </p>
+            </div>
+
+            <!-- ══════ FORGOT PASSWORD PANEL — Email → OTP + New Password ══════ -->
+            <div id="panel-forgot" class="auth-panel" role="tabpanel" aria-labelledby="tab-forgot">
+                <p class="auth-panel-heading">Reset password 🔑</p>
+                <p class="auth-panel-sub">Enter your email to receive a reset code.</p>
+
+                <div id="forgot-alert" class="auth-alert hidden" role="alert" aria-live="polite">
+                    <span class="auth-alert-icon" aria-hidden="true"></span>
+                    <span class="auth-alert-msg"></span>
+                </div>
+
+                <!-- Step 1: Enter email -->
+                <div id="forgot-step-1">
+                    <div class="form-group">
+                        <label for="forgot-email">Email address</label>
+                        <input type="email" id="forgot-email" placeholder="you@example.com" autocomplete="email">
+                    </div>
+                    <button type="button" id="forgot-submit-btn" class="auth-submit-btn">
+                        <span class="btn-text">Send Reset Code →</span>
+                        <span class="btn-spinner" aria-hidden="true"><span class="spinner-ring"></span></span>
+                    </button>
+                </div>
+
+                <!-- Step 2: Code + new password -->
+                <div id="forgot-step-2" style="display:none;">
+                    <div class="otp-info-box">
+                        <span class="otp-info-icon">📧</span>
+                        <span id="forgot-otp-sent-to">Check your email for the reset code.</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="forgot-code">Reset Code</label>
+                        <input type="text" id="forgot-code" class="otp-code-input" placeholder="• • • • • •" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+                    </div>
+                    <div class="form-group">
+                        <label for="forgot-new-password">New Password</label>
+                        <div class="input-password-wrapper">
+                            <input type="password" id="forgot-new-password" placeholder="Min. 8 characters" autocomplete="new-password">
+                            <button type="button" class="password-toggle-btn" aria-label="Toggle password visibility" onclick="togglePwd('forgot-new-password',this)">
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" id="forgot-reset-btn" class="auth-submit-btn">
+                        <span class="btn-text">Set New Password ✓</span>
+                        <span class="btn-spinner" aria-hidden="true"><span class="spinner-ring"></span></span>
+                    </button>
+                </div>
+
                 <p class="auth-footer" style="margin-top:16px;">
-                    Already have an account?
-                    <a href="#" onclick="switchTab('login'); return false;">Sign in →</a>
+                    Remembered it? <a href="#" onclick="switchTab('login'); return false;">Back to Sign In →</a>
                 </p>
             </div>
 
@@ -653,27 +380,13 @@
 
     </main>
 
-    <!-- OTP info-box style (self-contained, no impact on existing CSS) -->
-    <style>
-        .otp-info-box {
-            display: flex; align-items: center; gap: 10px;
-            background: rgba(15,76,58,0.06);
-            border: 1px solid rgba(15,76,58,0.18);
-            border-radius: var(--radius-sm);
-            padding: 12px 14px;
-            font-size: 0.85rem; color: var(--text);
-        }
-        .otp-info-icon { font-size: 1.2rem; flex-shrink: 0; }
-    </style>
-
     <script type="module">
         import { getSession } from "./js/auth.js";
 
-        // Already signed in? go straight to the app
+        // Already signed in? skip to app
         getSession().then(s => { if (s) window.location.href = "index.html"; });
 
-        // ── Helpers ────────────────────────────────────────────────────────────
-
+        // ── Clerk loader ──────────────────────────────────────────────────────────
         async function waitForClerk(ms = 8000) {
             const end = Date.now() + ms;
             while (Date.now() < end) {
@@ -685,217 +398,206 @@
             }
         }
 
-        function showAlert(panelId, type, msg) {
-            const el = document.getElementById(panelId + "-alert");
+        // ── UI helpers ────────────────────────────────────────────────────────────
+        function showAlert(panel, type, msg) {
+            const el = document.getElementById(panel + "-alert");
             if (!el) return;
-            const icon = { error: "\u26a0\ufe0f", success: "\u2705", info: "\u2139\ufe0f" }[type] || "\u2139\ufe0f";
             el.className = "auth-alert " + type;
-            el.querySelector(".auth-alert-icon").textContent = icon;
-            el.querySelector(".auth-alert-msg").textContent  = msg;
+            el.querySelector(".auth-alert-icon").textContent = { error: "⚠️", success: "✅", info: "ℹ️" }[type] || "ℹ️";
+            el.querySelector(".auth-alert-msg").textContent = msg;
         }
-        function hideAlert(id) {
-            const el = document.getElementById(id + "-alert");
+        function hideAlert(panel) {
+            const el = document.getElementById(panel + "-alert");
             if (el) el.className = "auth-alert hidden";
         }
-        function setLoading(btn, v) {
-            if (!btn) return;
-            btn.disabled = v;
-            btn.classList.toggle("loading", v);
+        function setLoading(btn, v) { if (!btn) return; btn.disabled = v; btn.classList.toggle("loading", v); }
+
+        function friendlyError(err) {
+            const raw = (err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || "").toLowerCase();
+            if (raw.includes("password")) return "Incorrect email or password. Please try again.";
+            if (raw.includes("identifier") || raw.includes("find") || raw.includes("account")) return "No account found with that email. Please sign up first.";
+            if (raw.includes("already") || raw.includes("taken") || raw.includes("exists")) return "An account with this email already exists. Try signing in.";
+            if (raw.includes("rate") || raw.includes("too many")) return "Too many attempts. Please wait a moment and try again.";
+            if (raw.includes("verification") || raw.includes("code")) return "Invalid or expired code. Please try again.";
+            return err?.errors?.[0]?.longMessage || err?.message || "Something went wrong. Please try again.";
         }
 
-        // ── Tab switching ───────────────────────────────────────────────────────
-        window.switchTab = function (tab) {
-            ["login", "register"].forEach(t => {
+        // ── Tab switching ─────────────────────────────────────────────────────────
+        window.switchTab = function(tab) {
+            ["login", "register", "forgot"].forEach(t => {
                 document.getElementById("tab-" + t)?.classList.toggle("active", t === tab);
                 document.getElementById("tab-" + t)?.setAttribute("aria-selected", t === tab);
                 document.getElementById("panel-" + t)?.classList.toggle("active", t === tab);
             });
         };
 
-        // ── Role selector ───────────────────────────────────────────────────────
-        window.selectRole = function (role) {
+        // ── Password toggle ───────────────────────────────────────────────────────
+        window.togglePwd = function(id, btn) {
+            const input = document.getElementById(id);
+            const show = input.type === "password";
+            input.type = show ? "text" : "password";
+            btn.querySelector("svg").innerHTML = show
+                ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'
+                : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+        };
+
+        // ── Role selector ─────────────────────────────────────────────────────────
+        window.selectRole = function(role) {
             document.getElementById("reg-role").value = role;
-            ["client", "student"].forEach(r => {
-                const card = document.getElementById("role-card-" + r);
-                card.classList.toggle("selected", r === role);
-                card.setAttribute("aria-checked", r === role);
+            ["client","student"].forEach(r => {
+                const c = document.getElementById("role-card-" + r);
+                c.classList.toggle("selected", r === role);
+                c.setAttribute("aria-checked", r === role);
             });
         };
 
-        // ════════════════════════════════════════════════════════════════════════
-        //  SIGN IN  —  Email OTP
-        //  Step 1: user enters email  → Clerk sends 6-digit code
-        //  Step 2: user enters code   → Clerk verifies → session created
-        // ════════════════════════════════════════════════════════════════════════
+        // ── Password strength ─────────────────────────────────────────────────────
+        window.checkStrength = function(val) {
+            let s = 0;
+            if (val.length >= 8)  s++;
+            if (val.length >= 12) s++;
+            if (/[A-Z]/.test(val)) s++;
+            if (/[0-9]/.test(val)) s++;
+            if (/[^A-Za-z0-9]/.test(val)) s++;
+            const lvls = [
+                { w:"0%",   c:"transparent",  t:"" },
+                { w:"25%",  c:"#f43f5e",       t:"Weak" },
+                { w:"50%",  c:"#f59e0b",       t:"Fair" },
+                { w:"75%",  c:"#06b6d4",       t:"Good" },
+                { w:"100%", c:"#10b981",       t:"Strong 💪" },
+            ];
+            const l = lvls[Math.min(s, 4)];
+            document.getElementById("strength-fill").style.cssText = "width:" + l.w + ";background:" + l.c;
+            document.getElementById("strength-label").textContent = l.t;
+        };
 
-        let signInAttempt = null;
-
+        // ════════════════════════════════════════════════════════════════════════════
+        //  LOGIN  —  Email + Password  (no OTP needed after account is created)
+        // ════════════════════════════════════════════════════════════════════════════
         document.getElementById("login-form").addEventListener("submit", async (e) => {
             e.preventDefault();
             hideAlert("login");
-            const email = document.getElementById("login-email").value.trim();
-            const btn   = document.getElementById("login-submit-btn");
-            if (!email) { showAlert("login", "error", "Please enter your email address."); return; }
+            const email    = document.getElementById("login-email").value.trim();
+            const password = document.getElementById("login-password").value;
+            const btn      = document.getElementById("login-submit-btn");
+
+            if (!email || !password) { showAlert("login", "error", "Please fill in your email and password."); return; }
 
             setLoading(btn, true);
             await waitForClerk();
             try {
-                signInAttempt = await window.Clerk.client.signIn.create({
+                const res = await window.Clerk.client.signIn.create({
                     identifier: email,
-                    strategy:   "email_code",
+                    password:   password,
                 });
-                await signInAttempt.prepareFirstFactor({
-                    strategy:       "email_code",
-                    emailAddressId: signInAttempt.supportedFirstFactors
-                                        .find(f => f.strategy === "email_code")?.emailAddressId,
-                });
-                // Show OTP entry step
-                document.getElementById("login-form").style.display = "none";
-                document.getElementById("otp-step").style.display   = "block";
-                document.getElementById("otp-sent-to").textContent  = "Code sent to " + email;
-                document.getElementById("otp-code").focus();
-            } catch (err) {
-                showAlert("login", "error",
-                    err.errors?.[0]?.longMessage || err.message || "Could not send code. Please try again.");
-            } finally { setLoading(btn, false); }
-        });
-
-        document.getElementById("otp-verify-btn").addEventListener("click", async () => {
-            const code = document.getElementById("otp-code").value.replace(/\D/g, "");
-            const btn  = document.getElementById("otp-verify-btn");
-            hideAlert("login");
-            if (code.length < 6) { showAlert("login", "error", "Please enter the 6-digit code."); return; }
-            if (!signInAttempt) { showAlert("login", "error", "Session expired. Please start again."); return; }
-
-            setLoading(btn, true);
-            try {
-                const res = await signInAttempt.attemptFirstFactor({ strategy: "email_code", code });
                 if (res.status === "complete") {
                     await window.Clerk.setActive({ session: res.createdSessionId });
-                    showAlert("login", "success", "Verified! Redirecting to your dashboard\u2026");
-                    setTimeout(() => { window.location.href = "index.html"; }, 700);
+                    showAlert("login", "success", "Signed in! Redirecting…");
+                    setTimeout(() => { window.location.href = "index.html"; }, 600);
                 } else {
-                    showAlert("login", "error", "Verification incomplete. Please try again.");
+                    showAlert("login", "error", "Sign in incomplete. Please try again.");
                 }
             } catch (err) {
-                showAlert("login", "error",
-                    err.errors?.[0]?.longMessage || "Invalid code. Please try again.");
+                showAlert("login", "error", friendlyError(err));
             } finally { setLoading(btn, false); }
         });
 
-        document.getElementById("resend-otp-link").addEventListener("click", async (e) => {
-            e.preventDefault();
-            if (!signInAttempt) return;
-            try {
-                await signInAttempt.prepareFirstFactor({
-                    strategy:       "email_code",
-                    emailAddressId: signInAttempt.supportedFirstFactors
-                                        .find(f => f.strategy === "email_code")?.emailAddressId,
-                });
-                showAlert("login", "info", "A new code has been sent to your email.");
-            } catch (err) { showAlert("login", "error", "Could not resend. Please refresh and try again."); }
-        });
-
-        // Auto-submit when 6 digits entered
-        document.getElementById("otp-code").addEventListener("input", (e) => {
-            e.target.value = e.target.value.replace(/\D/g, "");
-            if (e.target.value.length === 6) document.getElementById("otp-verify-btn").click();
-        });
-
-        // ════════════════════════════════════════════════════════════════════════
-        //  REGISTER  —  Email OTP
-        //  Step 1: collect name/email/role  → Clerk sends code
-        //  Step 2: enter code → session created → Supabase profile created
-        // ════════════════════════════════════════════════════════════════════════
-
+        // ════════════════════════════════════════════════════════════════════════════
+        //  REGISTER  —  Email + Password + OTP email verification
+        //  Step 1: create Clerk account with real password
+        //  Step 2: verify email with OTP code sent to inbox
+        //  After: user can log in with email+password — no OTP needed again
+        // ════════════════════════════════════════════════════════════════════════════
         let signUpAttempt = null;
 
         document.getElementById("register-submit-btn").addEventListener("click", async () => {
             hideAlert("register");
             const fullName = document.getElementById("reg-name").value.trim();
             const email    = document.getElementById("reg-email").value.trim();
+            const password = document.getElementById("reg-password").value;
+            const role     = document.getElementById("reg-role").value;
             const btn      = document.getElementById("register-submit-btn");
 
-            if (!fullName) { showAlert("register", "error", "Please enter your full name."); return; }
-            if (!email || !email.includes("@")) { showAlert("register", "error", "Please enter a valid email address."); return; }
+            if (!fullName)                        { showAlert("register", "error", "Please enter your full name."); return; }
+            if (!email || !email.includes("@"))   { showAlert("register", "error", "Please enter a valid email address."); return; }
+            if (!password || password.length < 8) { showAlert("register", "error", "Password must be at least 8 characters."); return; }
 
             setLoading(btn, true);
             await waitForClerk();
             try {
-                // Include a secure random password so Clerk's password requirement
-                // is satisfied — users never see or type it, OTP is their auth method.
-                const randomPwd = crypto.randomUUID().replace(/-/g, "") + "Aa1!";
+                // Create Clerk account with the user's real password
+                const nameParts = fullName.trim().split(" ");
+                const firstName = nameParts[0];
+                const lastName  = nameParts.slice(1).join(" ") || "";
+
                 signUpAttempt = await window.Clerk.client.signUp.create({
                     emailAddress: email,
-                    password:     randomPwd,
+                    password:     password,
+                    firstName:    firstName,
+                    lastName:     lastName,
                 });
+
+                // Send email verification OTP
                 await signUpAttempt.prepareEmailAddressVerification({ strategy: "email_code" });
 
+                // Show step 2
                 document.getElementById("reg-step-1").style.display   = "none";
                 document.getElementById("reg-otp-step").style.display = "block";
                 document.getElementById("reg-otp-sent-to").textContent = "Code sent to " + email;
                 document.getElementById("reg-otp-code").focus();
+
             } catch (err) {
-                const msg = err.errors?.[0]?.longMessage || err.message || "Could not send code.";
-                showAlert("register", "error",
-                    (msg.toLowerCase().includes("already") || msg.toLowerCase().includes("taken"))
-                        ? "An account with this email already exists. Try signing in instead."
-                        : msg);
+                showAlert("register", "error", friendlyError(err));
             } finally { setLoading(btn, false); }
         });
 
+        // Verify OTP → complete sign-up → create Supabase profile
         document.getElementById("reg-otp-verify-btn").addEventListener("click", async () => {
             const code = document.getElementById("reg-otp-code").value.replace(/\D/g, "");
             const btn  = document.getElementById("reg-otp-verify-btn");
             hideAlert("register");
-            if (code.length < 6) { showAlert("register", "error", "Please enter the 6-digit code."); return; }
+            if (code.length < 6) { showAlert("register", "error", "Please enter the full 6-digit code."); return; }
 
             setLoading(btn, true);
             try {
                 const res = await signUpAttempt.attemptEmailAddressVerification({ code });
 
-                // status === "complete" means fully done
-                // status === "missing_requirements" means password was already set
-                // but another step is needed — call setActive directly
                 if (res.status === "complete") {
                     await window.Clerk.setActive({ session: res.createdSessionId });
+                    // Create Supabase users row
                     const { getSession } = await import("./js/auth.js");
-                    await getSession(); // creates Supabase users row
-                    showAlert("register", "success", "\u2705 Account created! Welcome to The Bridge Protocol!");
+                    await getSession();
+                    showAlert("register", "success", "✅ Account created! Welcome to The Bridge Protocol!");
                     setTimeout(() => { window.location.href = "index.html"; }, 900);
 
                 } else if (res.status === "missing_requirements") {
-                    // Email is verified but Clerk still wants another field.
-                    // Since we already set the password in step 1, try finishing:
-                    try {
-                        const finalRes = await signUpAttempt.update({});
-                        if (finalRes.status === "complete") {
-                            await window.Clerk.setActive({ session: finalRes.createdSessionId });
-                            const { getSession } = await import("./js/auth.js");
-                            await getSession();
-                            showAlert("register", "success", "\u2705 Account created! Welcome to The Bridge Protocol!");
-                            setTimeout(() => { window.location.href = "index.html"; }, 900);
-                        } else {
-                            // Last resort: sign them in directly with the random password
-                            // by using the email_code sign-in strategy
-                            showAlert("register", "info", "Completing sign-in\u2026");
-                            setTimeout(() => { window.location.href = "index.html"; }, 1200);
-                        }
-                    } catch (_) {
-                        showAlert("register", "success", "\u2705 Email verified! Signing you in\u2026");
-                        setTimeout(() => { window.location.href = "index.html"; }, 1000);
+                    // All required fields were provided; try finishing up
+                    const done = await signUpAttempt.update({});
+                    if (done.status === "complete") {
+                        await window.Clerk.setActive({ session: done.createdSessionId });
+                        const { getSession } = await import("./js/auth.js");
+                        await getSession();
+                        showAlert("register", "success", "✅ Account created! Welcome to The Bridge Protocol!");
+                        setTimeout(() => { window.location.href = "index.html"; }, 900);
+                    } else {
+                        showAlert("register", "error", "Could not complete sign-up. Please try again.");
                     }
-
                 } else {
                     showAlert("register", "error", "Verification incomplete. Please try again.");
                 }
             } catch (err) {
-                showAlert("register", "error",
-                    err.errors?.[0]?.longMessage || "Invalid or expired code. Please try again.");
+                showAlert("register", "error", friendlyError(err));
             } finally { setLoading(btn, false); }
         });
 
-        document.getElementById("reg-resend-otp-link").addEventListener("click", async (e) => {
+        // Auto-submit OTP when 6 digits entered
+        document.getElementById("reg-otp-code").addEventListener("input", (e) => {
+            e.target.value = e.target.value.replace(/\D/g, "");
+            if (e.target.value.length === 6) document.getElementById("reg-otp-verify-btn").click();
+        });
+
+        // Resend verification code
+        document.getElementById("reg-resend-link").addEventListener("click", async (e) => {
             e.preventDefault();
             if (!signUpAttempt) return;
             try {
@@ -904,9 +606,64 @@
             } catch (err) { showAlert("register", "error", "Could not resend. Please refresh and try again."); }
         });
 
-        document.getElementById("reg-otp-code").addEventListener("input", (e) => {
+        // ════════════════════════════════════════════════════════════════════════════
+        //  FORGOT PASSWORD  —  Email → Reset OTP code → New Password
+        // ════════════════════════════════════════════════════════════════════════════
+        let resetAttempt = null;
+
+        document.getElementById("forgot-submit-btn").addEventListener("click", async () => {
+            hideAlert("forgot");
+            const email = document.getElementById("forgot-email").value.trim();
+            const btn   = document.getElementById("forgot-submit-btn");
+            if (!email) { showAlert("forgot", "error", "Please enter your email address."); return; }
+
+            setLoading(btn, true);
+            await waitForClerk();
+            try {
+                resetAttempt = await window.Clerk.client.signIn.create({
+                    strategy:   "reset_password_email_code",
+                    identifier: email,
+                });
+                document.getElementById("forgot-step-1").style.display = "none";
+                document.getElementById("forgot-step-2").style.display = "block";
+                document.getElementById("forgot-otp-sent-to").textContent = "Reset code sent to " + email;
+                document.getElementById("forgot-code").focus();
+                showAlert("forgot", "info", "Check your inbox — a 6-digit reset code has been sent.");
+            } catch (err) {
+                showAlert("forgot", "error", friendlyError(err));
+            } finally { setLoading(btn, false); }
+        });
+
+        document.getElementById("forgot-reset-btn").addEventListener("click", async () => {
+            const code     = document.getElementById("forgot-code").value.replace(/\D/g, "");
+            const newPwd   = document.getElementById("forgot-new-password").value;
+            const btn      = document.getElementById("forgot-reset-btn");
+            hideAlert("forgot");
+            if (code.length < 6)        { showAlert("forgot", "error", "Please enter the 6-digit reset code."); return; }
+            if (newPwd.length < 8)      { showAlert("forgot", "error", "New password must be at least 8 characters."); return; }
+
+            setLoading(btn, true);
+            try {
+                const res = await resetAttempt.attemptFirstFactor({
+                    strategy: "reset_password_email_code",
+                    code,
+                    password: newPwd,
+                });
+                if (res.status === "complete") {
+                    await window.Clerk.setActive({ session: res.createdSessionId });
+                    showAlert("forgot", "success", "Password updated! Redirecting…");
+                    setTimeout(() => { window.location.href = "index.html"; }, 900);
+                } else {
+                    showAlert("forgot", "error", "Could not reset password. Please try again.");
+                }
+            } catch (err) {
+                showAlert("forgot", "error", friendlyError(err));
+            } finally { setLoading(btn, false); }
+        });
+
+        // Auto-submit reset code when 6 digits entered
+        document.getElementById("forgot-code").addEventListener("input", (e) => {
             e.target.value = e.target.value.replace(/\D/g, "");
-            if (e.target.value.length === 6) document.getElementById("reg-otp-verify-btn").click();
         });
 
     </script>
