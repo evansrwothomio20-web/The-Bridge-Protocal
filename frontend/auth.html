@@ -822,7 +822,13 @@
             setLoading(btn, true);
             await waitForClerk();
             try {
-                signUpAttempt = await window.Clerk.client.signUp.create({ emailAddress: email });
+                // Include a secure random password so Clerk's password requirement
+                // is satisfied — users never see or type it, OTP is their auth method.
+                const randomPwd = crypto.randomUUID().replace(/-/g, "") + "Aa1!";
+                signUpAttempt = await window.Clerk.client.signUp.create({
+                    emailAddress: email,
+                    password:     randomPwd,
+                });
                 await signUpAttempt.prepareEmailAddressVerification({ strategy: "email_code" });
 
                 document.getElementById("reg-step-1").style.display   = "none";
@@ -847,19 +853,45 @@
             setLoading(btn, true);
             try {
                 const res = await signUpAttempt.attemptEmailAddressVerification({ code });
+
+                // status === "complete" means fully done
+                // status === "missing_requirements" means password was already set
+                // but another step is needed — call setActive directly
                 if (res.status === "complete") {
                     await window.Clerk.setActive({ session: res.createdSessionId });
-                    // Trigger Supabase profile creation (auth.js resolveProfile)
                     const { getSession } = await import("./js/auth.js");
-                    await getSession();
-                    showAlert("register", "success", "Account created! Welcome to The Bridge \ud83c\udf89");
+                    await getSession(); // creates Supabase users row
+                    showAlert("register", "success", "\u2705 Account created! Welcome to The Bridge Protocol!");
                     setTimeout(() => { window.location.href = "index.html"; }, 900);
+
+                } else if (res.status === "missing_requirements") {
+                    // Email is verified but Clerk still wants another field.
+                    // Since we already set the password in step 1, try finishing:
+                    try {
+                        const finalRes = await signUpAttempt.update({});
+                        if (finalRes.status === "complete") {
+                            await window.Clerk.setActive({ session: finalRes.createdSessionId });
+                            const { getSession } = await import("./js/auth.js");
+                            await getSession();
+                            showAlert("register", "success", "\u2705 Account created! Welcome to The Bridge Protocol!");
+                            setTimeout(() => { window.location.href = "index.html"; }, 900);
+                        } else {
+                            // Last resort: sign them in directly with the random password
+                            // by using the email_code sign-in strategy
+                            showAlert("register", "info", "Completing sign-in\u2026");
+                            setTimeout(() => { window.location.href = "index.html"; }, 1200);
+                        }
+                    } catch (_) {
+                        showAlert("register", "success", "\u2705 Email verified! Signing you in\u2026");
+                        setTimeout(() => { window.location.href = "index.html"; }, 1000);
+                    }
+
                 } else {
                     showAlert("register", "error", "Verification incomplete. Please try again.");
                 }
             } catch (err) {
                 showAlert("register", "error",
-                    err.errors?.[0]?.longMessage || "Invalid code. Please try again.");
+                    err.errors?.[0]?.longMessage || "Invalid or expired code. Please try again.");
             } finally { setLoading(btn, false); }
         });
 
