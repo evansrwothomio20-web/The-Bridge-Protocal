@@ -8,18 +8,9 @@
   ],
   "routes": [
     {
-      "src": "/frontend/auth.html",
-      "headers": { "Location": "/auth.html" },
-      "status": 301
-    },
-    {
       "src": "/frontend/index.html",
       "headers": { "Location": "/" },
       "status": 301
-    },
-    {
-      "src": "/auth.html",
-      "dest": "/frontend/auth.html"
     },
     {
       "src": "/",

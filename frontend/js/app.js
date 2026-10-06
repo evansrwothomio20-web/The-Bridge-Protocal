@@ -115,7 +115,21 @@ document.addEventListener("DOMContentLoaded", async () => {
  */
 async function initSession() {
     const session = await getSession();
-    if (!session) return; // not signed in — requireAuth() handles redirect
+    const loginBtn    = document.getElementById("login-btn");
+    const logoutBtn   = document.getElementById("logout-btn");
+    const postTaskBtn = document.getElementById("open-post-task-btn");
+
+    if (!session) {
+        if (loginBtn) loginBtn.classList.remove("hidden");
+        if (logoutBtn) logoutBtn.classList.add("hidden");
+        if (postTaskBtn) postTaskBtn.classList.add("hidden");
+        return; // not signed in
+    }
+
+    if (loginBtn) loginBtn.classList.add("hidden");
+    if (logoutBtn) logoutBtn.classList.remove("hidden");
+    // Show Post Task only if they are on marketplace
+    if (postTaskBtn && activeView === "marketplace") postTaskBtn.classList.remove("hidden");
 
     currentUserId = session.user.id;
 
@@ -272,6 +286,11 @@ async function loadBidExplorer() {
  * @param {Task} task
  */
 function handleExplorerReachOut(task) {
+    if (!currentUserId) {
+        toast("info", "Sign in required", "Please sign in to send a direct message.");
+        if (window.Clerk) window.Clerk.openSignIn();
+        return;
+    }
     openReachoutModal(task);
 }
 
@@ -342,7 +361,20 @@ async function loadContactForTask(task, bids) {
 function setupEventListeners() {
     // ── Navbar: Post Task button
     document.getElementById("open-post-task-btn")
-        ?.addEventListener("click", openPostTaskModal);
+        ?.addEventListener("click", () => {
+            if (!currentUserId) {
+                toast("info", "Sign in required", "Please sign in to post a task.");
+                if (window.Clerk) window.Clerk.openSignIn();
+                return;
+            }
+            openPostTaskModal();
+        });
+
+    // ── Navbar: Login button
+    document.getElementById("login-btn")
+        ?.addEventListener("click", () => {
+            if (window.Clerk) window.Clerk.openSignIn();
+        });
 
     // ── Navbar: Logout button
     document.getElementById("logout-btn")
@@ -573,6 +605,11 @@ function syncExplorerFilterChips() {
  * @param {Task} task
  */
 function handleBidClick(task) {
+    if (!currentUserId) {
+        toast("info", "Sign in required", "Please sign in to place a bid.");
+        if (window.Clerk) window.Clerk.openSignIn();
+        return;
+    }
     openBidModal(task);
 }
 

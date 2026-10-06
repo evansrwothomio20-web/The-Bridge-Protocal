@@ -25,11 +25,7 @@
         type="text/javascript">
     </script>
 
-    <!-- Auth guard: redirect to auth.html if no active Clerk session -->
-    <script type="module">
-        import { requireAuth } from "./js/auth.js";
-        requireAuth(); // silently redirects if not signed in
-    </script>
+
 </head>
 <body>
 
@@ -76,12 +72,14 @@
                 </div>
             </div>
 
-            <button id="open-post-task-btn" class="btn btn-primary" aria-haspopup="dialog">
+            <button id="login-btn" class="btn btn-ghost hidden">Sign In</button>
+
+            <button id="open-post-task-btn" class="btn btn-primary hidden" aria-haspopup="dialog">
                 <span class="btn-icon" aria-hidden="true">+</span>
                 Post a Task
             </button>
 
-            <button id="logout-btn" class="btn btn-ghost btn--icon-only" aria-label="Logout" title="Logout">
+            <button id="logout-btn" class="btn btn-ghost btn--icon-only hidden" aria-label="Logout" title="Logout">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                     <polyline points="16 17 21 12 16 7"/>
