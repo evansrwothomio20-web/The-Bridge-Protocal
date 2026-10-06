@@ -437,8 +437,43 @@
     <script type="module">
         import { getSession } from "./js/auth.js";
 
-        // Already signed in? redirect immediately
-        getSession().then(s => { if (s) window.location.href = "index.html"; });
+        // ── Page init: handle OAuth callback OR normal session check ─────────────
+        async function init() {
+            // Detect if Clerk is returning from an OAuth redirect.
+            // Clerk appends __clerk_status (and sometimes __clerk_db_jwt) to the URL.
+            const search = window.location.search;
+            const hash   = window.location.hash;
+            const isOAuthCallback =
+                search.includes("__clerk_status") ||
+                search.includes("__clerk_db_jwt") ||
+                hash.includes("__clerk_status")   ||
+                hash.includes("__clerk_db_jwt");
+
+            if (isOAuthCallback) {
+                // Let Clerk complete the OAuth handshake.
+                // handleRedirectCallback() exchanges the token, creates the session,
+                // then automatically navigates to `redirectUrlComplete` (index.html).
+                await waitForClerk();
+                try {
+                    await window.Clerk.handleRedirectCallback();
+                    // If handleRedirectCallback doesn't redirect automatically, do it ourselves
+                    window.location.href = "index.html";
+                } catch (err) {
+                    console.error("[auth] OAuth callback error:", err);
+                    // Show error on login panel and fall through to normal UI
+                    showAlert("login", "error", "Google sign-in failed. Please try again.");
+                    // Clean the URL so the callback isn't re-processed on refresh
+                    history.replaceState({}, document.title, window.location.pathname);
+                }
+                return; // Stop here — don't run normal session check
+            }
+
+            // Normal flow: already signed in? redirect to app
+            const s = await getSession();
+            if (s) window.location.href = "index.html";
+        }
+
+        init();
 
         // ── Clerk loader (matches auth.js Phase 1 + Phase 2) ─────────────────────
         async function waitForClerk(ms = 10000) {
