@@ -7,11 +7,47 @@
     }
   ],
   "routes": [
-    { "src": "/auth.html",        "dest": "/frontend/auth.html" },
-    { "src": "/assets/(.*)",      "dest": "/frontend/assets/$1" },
-    { "src": "/js/(.*)",          "dest": "/frontend/js/$1" },
-    { "src": "/style.css",        "dest": "/frontend/style.css" },
-    { "src": "/(.*)\\.html",      "dest": "/frontend/$1.html" },
-    { "src": "/(.*)",             "dest": "/frontend/index.html" }
+    {
+      "comment": "Redirect /frontend/... URLs to canonical clean URLs so no duplicate pages exist",
+      "src": "/frontend/auth.html",
+      "headers": { "Location": "/auth.html" },
+      "status": 301
+    },
+    {
+      "src": "/frontend/index.html",
+      "headers": { "Location": "/" },
+      "status": 301
+    },
+
+    {
+      "comment": "Canonical routes — serve files from the frontend/ folder",
+      "src": "/auth.html",
+      "dest": "/frontend/auth.html"
+    },
+    {
+      "src": "/",
+      "dest": "/frontend/index.html"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/frontend/assets/$1"
+    },
+    {
+      "src": "/js/(.*)",
+      "dest": "/frontend/js/$1"
+    },
+    {
+      "src": "/style.css",
+      "dest": "/frontend/style.css"
+    },
+    {
+      "src": "/(.*)\\.html",
+      "dest": "/frontend/$1.html"
+    },
+    {
+      "comment": "SPA fallback — everything else serves index.html",
+      "src": "/(.*)",
+      "dest": "/frontend/index.html"
+    }
   ]
 }

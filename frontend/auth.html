@@ -198,7 +198,7 @@
     <main class="auth-page" role="main">
 
         <!-- Logo -->
-        <a href="index.html" class="auth-logo" aria-label="The Bridge Protocol – go to homepage">
+        <a href="/" class="auth-logo" aria-label="The Bridge Protocol – go to homepage">
             <img src="assets/logo.png" alt="The Bridge Protocol logo">
             <div class="auth-logo-text">
                 <h1>THE BRIDGE</h1>
@@ -427,7 +427,7 @@
 
         </div><!-- /.auth-card -->
 
-        <a href="index.html" class="auth-back-link">
+        <a href="/" class="auth-back-link">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Browse marketplace without signing in
         </a>
@@ -457,7 +457,7 @@
                 try {
                     await window.Clerk.handleRedirectCallback();
                     // If handleRedirectCallback doesn't redirect automatically, do it ourselves
-                    window.location.href = "index.html";
+                    window.location.href = "/";
                 } catch (err) {
                     console.error("[auth] OAuth callback error:", err);
                     // Show error on login panel and fall through to normal UI
@@ -475,13 +475,13 @@
             // Fast path: Clerk session exists → go straight to the app.
             // We don't gate on Supabase here; profile creation happens in index.html.
             if (window.Clerk?.session) {
-                window.location.href = "index.html";
+                window.location.href = "/";
                 return;
             }
 
             // Double-check via getSession() in case Clerk session is stale
             const s = await getSession();
-            if (s) window.location.href = "index.html";
+            if (s) window.location.href = "/";
         }
 
         init();
@@ -523,8 +523,8 @@
             try {
                 await window.Clerk.client.signIn.authenticateWithRedirect({
                     strategy:            "oauth_google",
-                    redirectUrl:         window.location.origin + "/frontend/auth.html",
-                    redirectUrlComplete: window.location.origin + "/frontend/index.html",
+                    redirectUrl:         window.location.origin + "/auth.html",
+                    redirectUrlComplete: window.location.origin + "/",
                 });
             } catch (err) {
                 btn.disabled = false;
@@ -541,8 +541,8 @@
             try {
                 await window.Clerk.client.signUp.authenticateWithRedirect({
                     strategy:            "oauth_google",
-                    redirectUrl:         window.location.origin + "/frontend/auth.html",
-                    redirectUrlComplete: window.location.origin + "/frontend/index.html",
+                    redirectUrl:         window.location.origin + "/auth.html",
+                    redirectUrlComplete: window.location.origin + "/",
                 });
             } catch (err) {
                 btn.disabled = false;
@@ -671,7 +671,7 @@
             try {
                 // If already signed in, just redirect
                 if (window.Clerk?.session) {
-                    window.location.href = "index.html";
+                    window.location.href = "/";
                     return;
                 }
 
@@ -682,7 +682,7 @@
                 if (res.status === "complete") {
                     await window.Clerk.setActive({ session: res.createdSessionId });
                     showAlert("login", "success", "Signed in! Redirecting…");
-                    setTimeout(() => { window.location.href = "index.html"; }, 600);
+                    setTimeout(() => { window.location.href = "/"; }, 600);
                 } else {
                     showAlert("login", "error", "Sign in incomplete. Please try again.");
                 }
@@ -690,7 +690,7 @@
                 // If Clerk says the user is already signed in, just redirect
                 const code = err?.errors?.[0]?.code || "";
                 if (code === "identifier_already_signed_in" || code === "session_exists") {
-                    window.location.href = "index.html";
+                    window.location.href = "/";
                     return;
                 }
                 showAlert("login", "error", friendlyError(err));
@@ -789,7 +789,7 @@
                     const { getSession } = await import("./js/auth.js");
                     await getSession();
                     showAlert("register", "success", "\u2705 Account created! Welcome to The Bridge Protocol!");
-                    setTimeout(() => { window.location.href = "index.html"; }, 900);
+                    setTimeout(() => { window.location.href = "/"; }, 900);
 
                 } else if (res.status === "missing_requirements") {
                     // Detect which fields are still missing and supply them
@@ -811,7 +811,7 @@
                             const { getSession } = await import("./js/auth.js");
                             await getSession();
                             showAlert("register", "success", "\u2705 Account created! Welcome to The Bridge Protocol!");
-                            setTimeout(() => { window.location.href = "index.html"; }, 900);
+                            setTimeout(() => { window.location.href = "/"; }, 900);
                         } else {
                             const stillMissing = finalRes.missingFields?.join(", ") || "unknown";
                             showAlert("register", "error", `Sign-up needs more info: ${stillMissing}. Please contact support.`);
@@ -890,7 +890,7 @@
                 if (res.status === "complete") {
                     await window.Clerk.setActive({ session: res.createdSessionId });
                     showAlert("forgot", "success", "Password updated! Redirecting…");
-                    setTimeout(() => { window.location.href = "index.html"; }, 900);
+                    setTimeout(() => { window.location.href = "/"; }, 900);
                 } else {
                     showAlert("forgot", "error", "Could not reset password. Please try again.");
                 }

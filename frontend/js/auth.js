@@ -137,8 +137,8 @@ export async function getSession() {
 export async function requireAuth() {
     await waitForClerk();
     if (!window.Clerk?.session) {
-        console.log("[auth] requireAuth: no session -> auth.html");
-        window.location.href = "auth.html";
+        console.log("[auth] requireAuth: no session -> /auth.html");
+        window.location.href = "/auth.html";
         return null;
     }
     console.log("[auth] requireAuth: session OK.");
@@ -148,5 +148,5 @@ export async function requireAuth() {
 export async function logout() {
     await waitForClerk();
     await window.Clerk?.signOut();
-    window.location.href = "auth.html";
+    window.location.href = "/auth.html";
 }
