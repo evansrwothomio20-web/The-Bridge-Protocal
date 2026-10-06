@@ -468,7 +468,18 @@
                 return; // Stop here — don't run normal session check
             }
 
-            // Normal flow: already signed in? redirect to app
+            // Normal flow: check if already signed in
+            // First wait for Clerk so session state is settled
+            await waitForClerk();
+
+            // Fast path: Clerk session exists → go straight to the app.
+            // We don't gate on Supabase here; profile creation happens in index.html.
+            if (window.Clerk?.session) {
+                window.location.href = "index.html";
+                return;
+            }
+
+            // Double-check via getSession() in case Clerk session is stale
             const s = await getSession();
             if (s) window.location.href = "index.html";
         }

@@ -96,20 +96,39 @@ export async function getSession() {
         return null;
     }
 
+    // Try to resolve / create the Supabase profile (best-effort)
     const profile = await resolveProfile(clerkUser);
-    if (!profile) {
-        console.warn("[auth] getSession: no Supabase profile.");
-        return null;
+
+    if (profile) {
+        console.log("[auth] getSession OK:", profile.email);
+        return {
+            user: {
+                id:    profile.id,
+                email: profile.email,
+                user_metadata: {
+                    full_name: profile.full_name,
+                    role:      profile.role,
+                },
+            },
+        };
     }
 
-    console.log("[auth] getSession OK:", profile.email);
+    // Supabase profile not available yet (e.g. first Google OAuth login where
+    // the insert is still in flight or RLS blocked it). Return a minimal session
+    // built from Clerk data so the redirect still fires.
+    const email     = clerkUser.primaryEmailAddress?.emailAddress || "";
+    const firstName = clerkUser.firstName || "";
+    const lastName  = clerkUser.lastName  || "";
+    const fullName  = [firstName, lastName].filter(Boolean).join(" ") || email.split("@")[0];
+
+    console.warn("[auth] getSession: Supabase profile missing — using Clerk data as fallback.");
     return {
         user: {
-            id:    profile.id,
-            email: profile.email,
+            id:    clerkUser.id,
+            email,
             user_metadata: {
-                full_name: profile.full_name,
-                role:      profile.role,
+                full_name: fullName,
+                role:      "client",   // default; profile will be created on next index.html load
             },
         },
     };
