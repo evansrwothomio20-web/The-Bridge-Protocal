@@ -8,7 +8,6 @@
   ],
   "routes": [
     {
-      "comment": "Redirect /frontend/... URLs to canonical clean URLs so no duplicate pages exist",
       "src": "/frontend/auth.html",
       "headers": { "Location": "/auth.html" },
       "status": 301
@@ -18,9 +17,7 @@
       "headers": { "Location": "/" },
       "status": 301
     },
-
     {
-      "comment": "Canonical routes — serve files from the frontend/ folder",
       "src": "/auth.html",
       "dest": "/frontend/auth.html"
     },
@@ -45,7 +42,6 @@
       "dest": "/frontend/$1.html"
     },
     {
-      "comment": "SPA fallback — everything else serves index.html",
       "src": "/(.*)",
       "dest": "/frontend/index.html"
     }
